@@ -1,40 +1,41 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('mining') }}
+      {{ $t('Mining.Mining') }}
     </template>
     <template slot="body">
-      <template v-if="mining">
-        <button class="button" @click="stop">{{ $t('stop') }}</button>
-      </template>
+      <button v-if="mining" class="button" @click="stop">{{ $t('Mining.Stop') }}</button>
       <template v-else>
-        <b-field label="API" message="AMD devices use OpenCL. Nvidia devices use CUDA.">
+        <b-field label="API" :message="$t('Mining.ApiMessage')">
           <b-select v-model="api">
             <option value="opencl">OpenCL</option>
             <option value="cuda">CUDA</option>
-            <option value="cuda-opencl">Both</option>
+            <option value="cuda-opencl">{{ $t('Mining.Both') }}</option>
           </b-select>
         </b-field>
-        <b-field label="Pool" message="Leave blank for solo mining.">
+        <b-field :label="$t('Mining.Pool')" :message="$t('Mining.PoolMessage')">
           <b-input v-model="pool" placeholder="scheme://user[.workername][:password]@hostname:port[/...]"></b-input>
         </b-field>
-        <button class="button" @click="start">{{ $t('start') }}</button>
+        <button class="button" @click="start">{{ $t('Mining.Start') }}</button>
       </template>
+      <progress-bar v-if="downloading" size="tiny" :val="transferred" :max="total" bar-transition="none" />
       <code v-html="output" style="display: block; white-space: pre;"></code>
     </template>
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
-  import setTitle from '../../lib/setTitle.js'
+  import setTitle from '../../lib/setTitle'
   import os from 'os'
   import fs from 'fs'
   import path from 'path'
   import { spawn } from 'child_process'
   import download from 'download'
+  import ProgressBar from 'vue-simple-progress'
+  import { remote } from 'electron'
 
-  let ethminerPath = path.join(__static, 'ethminer', 'bin', (os.platform() === 'win32') ? 'ethminer.exe' : 'ethminer')
+  let ethminerPath = path.join(remote.app.getPath('userData'), 'ethminer', 'bin', (os.platform() === 'win32') ? 'ethminer.exe' : 'ethminer')
   let ethminerProcess
   let urls = {
     linux: 'https://github.com/ethereum-mining/ethminer/releases/download/v0.17.1/ethminer-0.17.1-linux-x86_64.tar.gz',
@@ -46,17 +47,35 @@
     name: 'mining',
     components: {
       Page,
+      ProgressBar,
     },
     data() {
       return {
         mining: false,
         api: 'opencl',
         pool: '',
+        downloading: false,
+        transferred: 0,
+        total: 0,
         output: '',
       }
     },
     async created() {
       setTitle(this.$t('mining'))
+
+      try {
+        fs.statSync(ethminerPath)
+      }
+      catch (e) {
+        let url = urls[os.platform()]
+        await download(url, path.join(remote.app.getPath('userData'), 'ethminer'), {extract: true})
+          .on('downloadProgress', progress => {
+            this.downloading = true
+            this.transferred = progress.transferred
+            this.total = progress.total
+          })
+        this.downloading = false
+      }
 
       if (ethminerProcess && !ethminerProcess.killed) {
         this.mining = true
@@ -70,7 +89,6 @@
           '--syslog',
       	]
 
-        await this.downloadEthMiner()
       	let process = spawn(ethminerPath, args)
 
       	process.on('error', err => {
@@ -98,16 +116,6 @@
       }
     },
     methods: {
-      async downloadEthMiner() {
-        try {
-          fs.statSync(ethminerPath)
-        }
-        catch (e) {
-          let url = urls[os.platform()]
-          this.output += 'Downloading ' + url
-          await download(url, path.join('static', 'ethminer'), {extract: true})
-        }
-      },
       async start(event) {
         this.output = ''
 
@@ -126,7 +134,6 @@
         }
 
         this.mining = true
-        await this.downloadEthMiner()
         ethminerProcess = spawn(ethminerPath, args)
         this.attach()
       },

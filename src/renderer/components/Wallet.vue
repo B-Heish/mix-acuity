@@ -1,72 +1,72 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('wallet') }}
+      {{ $t('Wallet.Wallet') }}
     </template>
 
     <template slot="body">
       <div class="is-clearfix">
         <img class="qr is-pulled-right" :src="qrcode" />
 
-        <b-field :label="$t('balance')">
+        <b-field :label="$t('Wallet.Balance')">
           {{ balance }} MIX
         </b-field>
-        <b-field :label="$t('unconfirmedBalance')">
+        <b-field :label="$t('Wallet.UnconfirmedBalance')">
           {{ unconfirmedBalance }} MIX
         </b-field>
-        <b-field label="Address">
+        <b-field :label="$t('Wallet.Address')">
           <code>{{ address }}</code>
         </b-field>
       </div>
 
       <b-tabs>
-        <b-tab-item :label="$t('transactions')">
+        <b-tab-item :label="$t('Wallet.Transactions')">
           <b-table :data="data" :row-class="(row, index) => (row.amount < 0) ? 'send' : 'receive'" default-sort="timestamp" default-sort-direction="desc">
             <template slot-scope="props">
               <b-table-column field="timestamp" :visible="false" sortable>
                 {{ props.row.timestamp }}
               </b-table-column>
 
-              <b-table-column :label="$t('when')">
+              <b-table-column :label="$t('Wallet.When')">
                 <timeago v-if="props.row.confirmed" :datetime="props.row.when" :autoUpdate="true"></timeago>
                 <span v-else>pending</span>
               </b-table-column>
 
-              <b-table-column label="Address">
+              <b-table-column :label="$t('Wallet.Address')">
                 <code>{{ props.row.who }}</code>
               </b-table-column>
 
-              <b-table-column :label="$t('amount')" numeric>
+              <b-table-column :label="$t('Wallet.Amount')" numeric>
                 {{ props.row.amount }}
               </b-table-column>
             </template>
           </b-table>
         </b-tab-item>
 
-        <b-tab-item :label="$t('send')">
+        <b-tab-item :label="$t('Wallet.Send')">
           <template v-if="!isConfirm">
-            <b-field :label="$t('to')" :type="{ 'is-danger': toError }" :message="toError">
-              <b-input v-model="to" @input="checkTo" placeholder="0x0000000000000000000000000000000000000000"></b-input>
+            <b-field :label="$t('Wallet.To')" :type="{ 'is-danger': toError }" :message="toError">
+              <b-input v-model.trim="to" @input="checkTo" placeholder="0x0000000000000000000000000000000000000000"></b-input>
             </b-field>
-            <b-field v-if="!isSendAll" :label="$t('amount')" :type="{ 'is-danger': amountError }" :message="amountError">
+            <b-field v-if="!isSendAll" :label="$t('Wallet.Amount')" :type="{ 'is-danger': amountError }" :message="amountError">
               <b-input v-model="amount" @input="checkAmount"></b-input>
             </b-field>
-            <b-field message="Send all account funds to the destination.">
+            <b-field :message="$t('Wallet.SendAllMessage')">
               <b-checkbox v-model="isSendAll">
-                Send all
+                {{ $t('Wallet.SendAll') }}
               </b-checkbox>
             </b-field>
-            <button type="submit" class="button is-primary" @click="send">{{ $t('send') }}</button>
+            <button type="submit" class="button is-primary" @click="send">{{ $t('Wallet.Send') }}</button>
           </template>
           <template v-else>
-            <b-field :label="$t('to')">
+            <b-field :label="$t('Wallet.To')">
               <code>{{ to }}</code>
             </b-field>
-            <b-field :label="$t('amount')">
+            <b-field :label="$t('Wallet.Amount')">
               {{ amount }} MIX
             </b-field>
-            <button type="button" class="button is-primary" @click="confirm">Confirm</button>
-            <button type="button" class="button" @click="cancel">Cancel</button>
+            <button type="button" class="button is-primary" @click="confirm">{{ $t('Wallet.Confirm') }}</button>
+            <button type="button" class="button" @click="cancel">{{ $t('Wallet.Cancel') }}</button>
           </template>
         </b-tab-item>
       </b-tabs>
@@ -74,10 +74,10 @@
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
   import QRCode from 'qrcode'
-  import setTitle from '../../lib/setTitle.js'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'wallet',
@@ -101,13 +101,15 @@
     },
     methods: {
       async loadData() {
-        let balance = await this.$activeAccount.get().getBalance()
-        this.balance = this.$mixClient.web3.utils.fromWei(balance)
-        balance = await this.$activeAccount.get().getUnconfirmedBalance()
-        this.unconfirmedBalance = this.$mixClient.web3.utils.fromWei(balance)
+        this.balance = this.$mixClient.formatWei(await this.$activeAccount.get().getBalance())
+        this.unconfirmedBalance = this.$mixClient.formatWei(await this.$activeAccount.get().getUnconfirmedBalance())
         let data = []
 
-        let count = await this.$db.get('/account/contract/' + this.$activeAccount.get().contractAddress + '/receivedCount')
+        let count = 0
+        try {
+          count = await this.$db.get('/account/contract/' + this.$activeAccount.get().contractAddress + '/receivedCount')
+        }
+        catch (e) {}
         let payments = []
 
         for (let i = 0; i < count; i++) {
@@ -132,21 +134,20 @@
                 'confirmed': results[i].timestamp != null,
                 'when': results[i].timestamp ? new Date(results[i].timestamp * 1000) : null,
                 'who': results[i].sender,
-                'amount': this.$mixClient.web3.utils.fromWei(results[i].amount),
+                'amount': this.$mixClient.formatWei(results[i].amount),
               })
             } catch (e) {}
           }
         }
         let nonce = await this.$mixClient.web3.eth.getTransactionCount(this.$activeAccount.get().controllerAddress)
-        let transactions = []
+        results = []
         for (let i = 0; i < nonce; i++) {
-          transactions.push(this.$activeAccount.get().getTransactionInfo(i)
+          results.push(await this.$activeAccount.get().getTransactionInfo(i)
             .catch(err => {
               return false
             })
           )
         }
-        results = await Promise.all(transactions)
         for (let i = 0; i < results.length; i++) {
           if (results[i] && results[i].transaction && results[i].transaction.value != 0) {
             data.push({
@@ -154,7 +155,7 @@
               'confirmed': results[i].block != null,
               'when': results[i].block ? new Date(results[i].block.timestamp * 1000) : null,
               'who': results[i].to,
-              'amount': '-' + this.$mixClient.web3.utils.fromWei(results[i].transaction.value),
+              'amount': '-' + this.$mixClient.formatWei(results[i].transaction.value),
             })
           }
         }
@@ -179,11 +180,10 @@
       },
       async send(event) {
         let toBN = this.$mixClient.web3.utils.toBN
-        this.to = this.to.trim()
 
         let error = false
         if (!this.$mixClient.web3.utils.isAddress(this.to)) {
-          this.toError = 'Invalid address.'
+          this.toError = this.$t('Wallet.InvalidAddress')
           error = true
         }
 
@@ -199,16 +199,14 @@
             }
           }
           catch (e) {
-            this.amountError = 'Invalid amount.'
+            this.amountError = this.$t('Wallet.InvalidAmount')
             error = true
           }
         }
 
-        if (error) {
-          return false
+        if (!error) {
+          this.isConfirm = true
         }
-
-        this.isConfirm = true
       },
       async cancel(event) {
         if (this.isSendAll) {
@@ -231,7 +229,7 @@
       },
     },
     async created() {
-      setTitle(this.$t('wallet'))
+      setTitle(this.$t('Wallet.Wallet'))
       if (!this.$activeAccount.get()) {
         return
       }

@@ -1,9 +1,9 @@
 <template>
   <page>
     <template slot="title">
-      Topic: {{ topic }}
-      <button v-if="!isSubscribed" class="button is-primary" @click="subscribe">Subscribe</button>
-      <button v-if="isSubscribed" class="button is-primary" @click="unsubscribe">Unsubscribe</button>
+      {{ $t('ViewTopic.Topic') }}: {{ topic }}
+      <button v-if="!isSubscribed" class="button is-primary" @click="subscribe">{{ $t('ViewTopic.Subscribe') }}</button>
+      <button v-if="isSubscribed" class="button is-primary" @click="unsubscribe">{{ $t('ViewTopic.Unsubscribe') }}</button>
     </template>
 
     <template slot="subtitle">
@@ -14,10 +14,10 @@
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
   import ViewItem from './ViewItem.vue'
-  import setTitle from '../../lib/setTitle.js'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'view-topic',
@@ -50,7 +50,9 @@
           await this.$db.get('/accountTopicSubscribed/' + this.$activeAccount.get().contractAddress + '/' + this.topicHash)
           this.isSubscribed = true
         }
-        catch (e) {}
+        catch (e) {
+          this.isSubscribed = false
+        }
 
         this.itemIds = (await this.$mixClient.itemTopics.methods.getAllTopicItems(this.topicHash).call()).reverse()
       },

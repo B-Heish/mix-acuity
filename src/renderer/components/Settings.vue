@@ -1,28 +1,28 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('settings') }}
+      {{ $t('Settings.Settings') }}
     </template>
 
     <template slot="body">
-      <b-field :label="$t('language')">
+      <b-field :label="$t('Settings.Language')">
         <b-select v-model="locale">
-          <option value="en-US">English</option>
+          <option value="en-US">English (United States)</option>
           <option value="ru">русский</option>
         </b-select>
       </b-field>
-      <b-field label="Advanced">
+      <b-field :label="$t('Settings.Advanced')">
         <b-checkbox v-model="development">
-          Development mode
+          {{ $t('Settings.DevelopmentMode') }}
         </b-checkbox>
       </b-field>
     </template>
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
-  import setTitle from '../../lib/setTitle.js'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'settings',
@@ -46,7 +46,7 @@
       },
     },
     created() {
-      setTitle(this.$t('settings'))
+      setTitle(this.$t('Settings.Settings'))
     },
   }
 </script>

@@ -1,4 +1,6 @@
 export default class Settings {
+	db: any
+	settings: any
 
 	async init(db) {
 		this.db = db
@@ -22,7 +24,7 @@ export default class Settings {
 		}
 
 		let defaults = {
-			locale: 'en',
+			locale: 'en-US',
 			development: false,
 		}
 

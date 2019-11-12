@@ -1,32 +1,35 @@
 <template>
   <page>
     <template slot="title">
-      New account
+      {{ $t('ManageAccountsNew.CreateAccount') }}
     </template>
 
     <template slot="messages">
       <b-message type="is-warning">
-        <p>Everything published with MIX Acuity will be stored publically for eternity.</p>
-        <p>This software is immature. Do not store large quantities of MIX in the wallet.</p>
-        <p>There is NO WARRANTY.</p>
+        <p>{{ $t('ManageAccountsNew.Warning1') }}</p>
+        <p>{{ $t('ManageAccountsNew.Warning2') }}</p>
+        <p>{{ $t('ManageAccountsNew.Warning3') }}</p>
       </b-message>
       <b-message type="is-info">
-        <p>The recovery phrase is the only way to recover your account. Write it down and store it securely. Do not store it on any electronic system.</p>
-        <p>The password is for unlocking the account on this device. It is not used for account recovery.</p>
+        <p>{{ $t('ManageAccountsNew.Info1') }}</p>
+        <p>{{ $t('ManageAccountsNew.Info2') }}</p>
       </b-message>
     </template>
 
     <template slot="body">
-      <b-field label="Recovery phrase">
+      <b-field :label="$t('ManageAccountsNew.RecoveryPhrase')">
         {{ recoveryPhrase }}
       </b-field>
-      <b-field label="Password" :type="passwordType" :message="passwordMessage">
+      <b-field :label="$t('ManageAccountsNew.RepeatRecoveryPhrase')" :type="recoveryPhraseRepeatType" :message="recoveryPhraseRepeatMessage">
+        <b-input type="input" v-model.trim="recoveryPhraseRepeat"></b-input>
+      </b-field>
+      <b-field :label="$t('ManageAccountsNew.Password')" :type="passwordType" :message="passwordMessage">
         <b-input type="password" v-model="password" password-reveal></b-input>
       </b-field>
-      <b-field label="Repeat password" :type="passwordRepeatType" :message="passwordRepeatMessage">
+      <b-field :label="$t('ManageAccountsNew.RepeatPassword')" :type="passwordRepeatType" :message="passwordRepeatMessage">
         <b-input type="password" v-model="passwordRepeat" password-reveal></b-input>
       </b-field>
-      <button class="button" @click="create">{{ $t('create') }}</button>
+      <button class="button" @click="create">{{ $t('ManageAccountsNew.Create') }}</button>
     </template>
   </page>
 </template>
@@ -38,8 +41,8 @@
   import * as bip39  from 'bip39'
   import keythereum from 'keythereum'
   import Page from './Page.vue'
-  import MixAccount from '../../lib/MixAccount.js'
-  import setTitle from '../../lib/setTitle.js'
+  import MixAccount from '../../lib/MixAccount'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'manage-accounts-new',
@@ -49,6 +52,9 @@
     data() {
       return {
         recoveryPhrase: '',
+        recoveryPhraseRepeat: '',
+        recoveryPhraseRepeatType: '',
+        recoveryPhraseRepeatMessage: '',
         password: '',
         passwordType: '',
         passwordMessage: '',
@@ -59,20 +65,42 @@
     },
     methods: {
       async create(event) {
+        // Repeat recovery phrase is required.
+        if (this.recoveryPhraseRepeat == '') {
+          this.recoveryPhraseRepeatType = 'is-danger'
+          this.recoveryPhraseRepeatMessage = this.$t('ManageAccountsNew.RepeatRecoveryPhraseIsRequired')
+          return
+        }
+        // Repeat recovery phrase must match recovery phrase.
+        else if (this.recoveryPhraseRepeat != this.recoveryPhrase) {
+          this.recoveryPhraseRepeatType = 'is-danger'
+          this.recoveryPhraseRepeatMessage = this.$t('ManageAccountsNew.RepeatRecoveryPhraseIsIncorrect')
+          return
+        }
+        else {
+          this.recoveryPhraseRepeatType = ''
+          this.recoveryPhraseRepeatMessage = ''
+        }
         // Password is required.
         if (this.password == '') {
           this.passwordType = 'is-danger'
-          this.passwordMessage = 'Password is required.'
+          this.passwordMessage = this.$t('ManageAccountsNew.PasswordIsRequired')
           return
         }
         else {
           this.passwordType = ''
           this.passwordMessage = ''
         }
-        // Check passwords match.
-        if (this.password != this.passwordRepeat) {
+        // Repeat password is required.
+        if (this.passwordRepeat == '') {
           this.passwordRepeatType = 'is-danger'
-          this.passwordRepeatMessage = 'Passwords do not match.'
+          this.passwordRepeatMessage = this.$t('ManageAccountsNew.RepeatPasswordIsRequired')
+          return
+        }
+        // Check passwords match.
+        else if (this.password != this.passwordRepeat) {
+          this.passwordRepeatType = 'is-danger'
+          this.passwordRepeatMessage = this.$t('ManageAccountsNew.PasswordsDoNotMatch')
           return
         }
         else {
@@ -99,7 +127,7 @@
       },
     },
     async created() {
-      setTitle('Create account')
+      setTitle(this.$t('ManageAccountsNew.CreateAccount'))
       this.recoveryPhrase = bip39.generateMnemonic()
     },
   }

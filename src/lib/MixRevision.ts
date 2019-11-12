@@ -1,15 +1,17 @@
-import multihashes from 'multihashes'
 import TitleMixinProto from './protobuf/TitleMixin_pb.js'
 import ImageMixinProto from './protobuf/ImageMixin_pb.js'
 import BodyTextMixinProto from './protobuf/BodyTextMixin_pb.js'
 import MixinSchemaMixinProto from './protobuf/MixinSchemaMixin_pb.js'
 import ProfileMixinProto from './protobuf/ProfileMixin_pb.js'
 import FileMixinProto from './protobuf/FileMixin_pb.js'
-import MixContent from './MixContent.js'
-import File from './File.js'
-import Base58 from 'base-58'
+import MixContent from './MixContent'
+import bs58 from 'bs58'
 
 export default class MixRevision {
+  vue: any
+  item: any
+  revisionId: number
+  content: MixContent
 
   constructor(vue, item, revisionId) {
     this.vue = vue
@@ -31,7 +33,7 @@ export default class MixRevision {
     return TitleMixinProto.TitleMixin.deserializeBinary(this.content.getPayloads('0x344f4812')[0]).getTitle()
   }
 
-  getImage(widthMin, heightMin) {
+  getImageUrl(widthMin, heightMin) {
     let imageMessage = new ImageMixinProto.ImageMixin.deserializeBinary(this.content.getPayloads('0x045eee8c')[0])
     let width = imageMessage.getWidth()
     let height = imageMessage.getHeight()
@@ -45,9 +47,31 @@ export default class MixRevision {
       }
     }
 
+    return 'http://127.0.0.1:5102/ipfs/' + bs58.encode(Buffer.from(mipmapList[i].getIpfsHash()))
+  }
+
+  getImage(widthMin, heightMin) {
+    let imageMessage = new ImageMixinProto.ImageMixin.deserializeBinary(this.content.getPayloads('0x045eee8c')[0])
+    let width = imageMessage.getWidth()
+    let height = imageMessage.getHeight()
+    let mipmapList = imageMessage.getMipmapLevelList()
+
+    if (mipmapList.length == 0) {
+      return ''
+    }
+
+    let i, scale
+    for (i = 0; i < mipmapList.length; i++) {
+      scale = 2 ** i
+      if (width / scale < widthMin * 4 || height / scale < heightMin * 4) {
+        break
+      }
+    }
+
     let widthOut = Math.round(width / scale)
     let heightOut = Math.round(height / scale)
-    return '<img src="http://127.0.0.1:5102/ipfs/' + Base58.encode(mipmapList[i].getIpfsHash()) + '" width="' + widthOut + '" height="' + heightOut + '">'
+
+    return '<img src="http://127.0.0.1:5102/ipfs/' + bs58.encode(Buffer.from(mipmapList[i].getIpfsHash())) + '" width="' + widthOut + '" height="' + heightOut + '">'
   }
 
   getFile() {
@@ -55,7 +79,7 @@ export default class MixRevision {
     return {
       name: fileMessage.getFilename(),
       size: fileMessage.getFilesize(),
-      hash: Base58.encode(fileMessage.getIpfsHash()),
+      hash: bs58.encode(Buffer.from(fileMessage.getIpfsHash())),
     }
   }
 

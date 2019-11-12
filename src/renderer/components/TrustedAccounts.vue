@@ -1,39 +1,39 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('trustedAccounts') }}
+      {{ $t('TrustedAccounts.TrustedAccounts') }}
     </template>
 
     <template slot="body">
       <b-table :data="trusted" default-sort="account" default-sort-direction="asc">
         <template slot-scope="props">
-          <b-table-column :label="$t('account')" field="account" sortable>
+          <b-table-column :label="$t('TrustedAccounts.Account')" field="account" sortable>
             <router-link :to="props.row.route">{{ props.row.title }}</router-link>
           </b-table-column>
           <b-table-column label="">
-            <span class="remove" @click="removeTrusted" :data-address="props.row.account">remove</span>
+            <span class="remove" @click="removeTrusted" :data-address="props.row.account">{{ $t('TrustedAccounts.Remove') }}</span>
           </b-table-column>
         </template>
       </b-table>
-      <h2 class="subtitle">Whitelist</h2>
+      <h2 class="subtitle">{{ $t('TrustedAccounts.Whitelist') }}</h2>
       <b-table :data="whitelist" default-sort="account" default-sort-direction="asc">
         <template slot-scope="props">
-          <b-table-column :label="$t('account')" field="account" sortable>
+          <b-table-column :label="$t('TrustedAccounts.Account')" field="account" sortable>
             <router-link :to="props.row.route">{{ props.row.title }}</router-link>
           </b-table-column>
           <b-table-column label="">
-            <span class="remove" @click="removeVisibility" :data-address="props.row.account">remove</span>
+            <span class="remove" @click="removeVisibility" :data-address="props.row.account">{{ $t('TrustedAccounts.Remove') }}</span>
           </b-table-column>
         </template>
       </b-table>
-      <h2 class="subtitle">Blacklist</h2>
+      <h2 class="subtitle">{{ $t('TrustedAccounts.Blacklist') }}</h2>
       <b-table :data="blacklist" default-sort="account" default-sort-direction="asc">
         <template slot-scope="props">
-          <b-table-column :label="$t('account')" field="account" sortable>
+          <b-table-column :label="$t('TrustedAccounts.Account')" field="account" sortable>
             <router-link :to="props.row.route">{{ props.row.title }}</router-link>
           </b-table-column>
           <b-table-column label="">
-            <span class="remove" @click="removeVisibility" :data-address="props.row.account">remove</span>
+            <span class="remove" @click="removeVisibility" :data-address="props.row.account">{{ $t('TrustedAccounts.Remove') }}</span>
           </b-table-column>
         </template>
       </b-table>
@@ -41,11 +41,11 @@
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
-  import MixAccount from '../../lib/MixAccount.js'
-  import MixItem from '../../lib/MixItem.js'
-  import setTitle from '../../lib/setTitle.js'
+  import MixAccount from '../../lib/MixAccount'
+  import MixItem from '../../lib/MixItem'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'trusted-accounts',
@@ -121,7 +121,7 @@
       },
     },
     created() {
-      setTitle(this.$t('transactionHistory'))
+      setTitle(this.$t('TrustedAccounts.TrustedAccounts'))
       this.loadData()
     },
   }

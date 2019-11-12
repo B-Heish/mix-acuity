@@ -44,7 +44,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
   import ItemLink from './ItemLink.vue'
   import ProfileLink from './ProfileLink.vue'
 
@@ -74,13 +74,15 @@
       }
       catch (e) {}
 
-      let tokens = await this.$activeAccount.get().call(this.$mixClient.accountTokens, 'getAllItemsByAccount', [this.address])
-      for (let itemId of tokens) {
+      this.$db.createValueStream({
+        'gte': '/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/',
+        'lt': '/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/z',
+      })
+      .on('data', async itemId => {
         try {
-          let address = await this.$mixClient.tokenRegistry.methods.getToken(itemId).call()
-          let token = new this.$mixClient.web3.eth.Contract(require('../../lib/contracts/CreatorToken.abi.json'), address)
-          let toBN = this.$mixClient.web3.utils.toBN
-          let balance = this.$mixClient.web3.utils.fromWei(toBN(await token.methods.balanceOf(this.address).call()))
+          let address = await this.$mixClient.tokenItemRegistry.methods.getToken(itemId).call()
+          let token = new this.$mixClient.web3.eth.Contract(require('../../lib/contracts/MixCreatorToken.abi.json'), address)
+          let balance = this.$mixClient.formatWei(await token.methods.balanceOf(this.address).call())
 
           if (balance > 0) {
             this.tokens.push({
@@ -90,7 +92,8 @@
           }
         }
         catch (e) {}
-      }
+      })
+
     },
     watch: {
       visibility() {

@@ -2,16 +2,25 @@
 
 import { app, BrowserWindow, Menu } from 'electron'
 import path from 'path'
-import parity from '../lib/Parity.js'
-import ipfs from '../lib/Ipfs.js'
+import parity from '../lib/Parity'
+import ipfs from '../lib/Ipfs'
 import { shell } from 'electron'
 import windowStateKeeper from 'electron-window-state'
 import { format as formatUrl } from 'url'
+import contextMenu from 'electron-context-menu'
 
 let isDevelopment = process.env.NODE_ENV !== 'production'
 let mainWindow
 
 async function createWindow () {
+  // Set up context menu.
+  contextMenu({
+    menu: actions => [
+      actions.cut(),
+      actions.copy(),
+      actions.paste(),
+    ],
+  })
   // Load the previous state with fallback to defaults
   let mainWindowState = windowStateKeeper({
     defaultWidth: 1000,
@@ -28,7 +37,7 @@ async function createWindow () {
       nodeIntegration: true,
     },
     icon: path.join(__static, 'icon.png'),
-    title: 'MIX Acuity',
+    title: 'MIX Acuity Browser',
   }
 
   /**
@@ -39,6 +48,7 @@ async function createWindow () {
 
   if (isDevelopment) {
     mainWindow.loadURL(`http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}`)
+    require('vue-devtools').install()
   }
   else {
     mainWindow.loadURL(formatUrl({
@@ -109,14 +119,28 @@ async function createWindow () {
   ipfs.launch(mainWindow)
 }
 
-app.on('ready', createWindow)
+let gotTheLock = app.requestSingleInstanceLock()
 
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow()
-  }
-})
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
 
-app.on('quit', async () => {
-  await Promise.all([parity.kill(), ipfs.kill()])
-})
+  app.on('ready', createWindow)
+
+  app.on('activate', () => {
+    if (mainWindow === null) {
+      createWindow()
+    }
+  })
+
+  app.on('quit', async () => {
+    await Promise.all([parity.kill(), ipfs.kill()])
+  })
+}

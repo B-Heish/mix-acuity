@@ -1,41 +1,45 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('accounts') }}
+      {{ $t('ManageAccounts.Accounts') }}
     </template>
 
     <template slot="body">
       <b-table :data="data" :selected.sync="selected" @click="select" default-sort="account">
         <template slot-scope="props">
 
-          <b-table-column field="account" :label="$t('account')" sortable>
+          <b-table-column field="account" :label="$t('ManageAccounts.Account')" sortable>
             <span class="clickable">{{ props.row.name }}</span>
           </b-table-column>
 
-          <b-table-column field="balance" :label="$t('balance')">
+          <b-table-column field="balance" :label="$t('ManageAccounts.Balance')" numeric>
             {{ props.row.balance }}
           </b-table-column>
 
-          <b-table-column field="operations">
-            <router-link v-if="props.row.deploy" :to="props.row.deploy">deploy</router-link>
+          <b-table-column field="deploy" custom-key="deploy">
+            <router-link v-if="props.row.deploy" :to="props.row.deploy">{{ $t('ManageAccounts.deploy') }}</router-link>
+          </b-table-column>
+
+          <b-table-column field="delete" custom-key="delete">
+            <router-link :to="props.row.delete">{{ $t('ManageAccounts.delete') }}</router-link>
           </b-table-column>
 
         </template>
         <template slot="footer">
-          <router-link class="footer-link" :to="{ name: 'manage-accounts-new' }">{{ $t('createAccount') }}</router-link>
-          <router-link class="footer-link" :to="{ name: 'manage-accounts-recover' }">{{ $t('recoverAccount') }}</router-link>
+          <router-link class="footer-link" :to="{ name: 'manage-accounts-new' }">{{ $t('ManageAccounts.CreateAccount') }}</router-link>
+          <router-link class="footer-link" :to="{ name: 'manage-accounts-recover' }">{{ $t('ManageAccounts.RecoverAccount') }}</router-link>
         </template>
       </b-table>
     </template>
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
-  import MixAccount from '../../lib/MixAccount.js'
-  import MixItem from '../../lib/MixItem.js'
+  import MixAccount from '../../lib/MixAccount'
+  import MixItem from '../../lib/MixItem'
   import ManageAccountsNew from './ManageAccountsNew.vue'
-  import setTitle from '../../lib/setTitle.js'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'manage-accounts',
@@ -69,8 +73,9 @@
           let row = {
             account: address,
             name: name,
-            balance: this.$mixClient.web3.utils.fromWei(await account.getBalance()),
-            deploy: account.contractAddress ? '' : '/manage-accounts/controller/' + address
+            balance: this.$mixClient.formatWei(await account.getBalance()),
+            deploy: account.contractAddress ? '' : '/manage-accounts/controller/' + address,
+            delete: '/manage-accounts/delete/' + address,
           }
           this.data.push(row)
           if (this.$activeAccount.get() && address == this.$activeAccount.get().controllerAddress) {
@@ -84,7 +89,7 @@
       },
     },
     created() {
-      setTitle(this.$t('accounts'))
+      setTitle(this.$t('ManageAccounts.Accounts'))
       this.loadAccounts()
     },
   }

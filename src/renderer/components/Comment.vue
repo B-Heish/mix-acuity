@@ -28,9 +28,9 @@
   </div>
 </template>
 
-<script>
-  import MixItem from '../../lib/MixItem.js'
-  import MixContent from '../../lib/MixContent.js'
+<script lang="ts">
+  import MixItem from '../../lib/MixItem'
+  import MixContent from '../../lib/MixContent'
   import VueMarkdown from 'vue-markdown'
   import BodyTextMixinProto from '../../lib/protobuf/BodyTextMixin_pb.js'
   import LanguageMixinProto from '../../lib/protobuf/LanguageMixin_pb.js'
@@ -87,7 +87,7 @@
 
         // Language
         let languageMessage = new LanguageMixinProto.LanguageMixin()
-        languageMessage.setLanguageTag('en-US')
+        languageMessage.setLanguageTag(this.$settings.get('locale'))
         content.addMixinPayload(0x9bc7a0e6, languageMessage.serializeBinary())
 
         // BodyText

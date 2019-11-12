@@ -1,6 +1,7 @@
 <template>
   <page>
     <template slot="title">
+      <div class="avatar is-pulled-left" v-html="avatar"></div>
       <span v-if="isFeed">Feed: </span>
       <span v-if="isProfile">Profile: </span>
       <span v-if="isToken">Token: </span>
@@ -14,24 +15,25 @@
         class="clickable mdi mdi-24px mdi-square-edit-outline">
       </span>
       <span v-if="isFeed">
-        <button v-if="!isSubscribed" class="button is-primary" @click="subscribe">Subscribe</button>
-        <button v-if="isSubscribed" class="button is-primary" @click="unsubscribe">Unsubscribe</button>
+        <button v-if="!isSubscribed" class="button is-primary" @click="subscribe">{{ $t('ViewItem.Subscribe') }}</button>
+        <button v-if="isSubscribed" class="button is-primary" @click="unsubscribe">{{ $t('ViewItem.Unsubscribe') }}</button>
       </span>
       <span v-if="isToken">
-        <button v-if="!isPortfolio" class="button is-primary" @click="portfolio">Add</button>
-        <button v-if="isPortfolio" class="button is-primary" @click="unportfolio">Remove</button>
+        <button v-if="!isPortfolio" class="button is-primary" @click="portfolio">{{ $t('ViewItem.Add') }}</button>
+        <button v-if="isPortfolio" class="button is-primary" @click="unportfolio">{{ $t('ViewItem.Remove') }}</button>
       </span>
     </template>
 
     <template slot="subtitle">
-      by <profile-link :address="ownerAddress"></profile-link>&ensp;
+      {{ $t('ViewItem.by') }} <profile-link :address="ownerAddress"></profile-link>&ensp;
       <span
         @mouseover="ownerTrustedClassCurrent = ownerTrustedClassHover"
         @mouseleave="ownerTrustedClassCurrent = ownerTrustedClass"
         :class="ownerTrustedClassCurrent" class="clickable mdi mdi-24px"
-        @click="toggleTrust"></span><br />
-      <span v-if="inFeed">in <router-link :to="feedRoute">{{ feed }}</router-link><br /></span>
-      <span v-if="topics.length > 0"><span class="topics">on <span v-for="topic in topics" class="topic"><router-link  :key="topic.hash" :to="topic.route">{{ topic.topic }}</router-link></span></span><br /></span>
+        @click="toggleTrust"></span><br /><br />
+      <span v-if="inFeed">{{ $t('ViewItem.Feeds') }}: <router-link :to="feedRoute">{{ feed }}</router-link><br /></span>
+      <span v-if="topics.length > 0"><span class="topics">{{ $t('ViewItem.Topics') }}: <span v-for="topic in topics" class="topic"><router-link  :key="topic.hash" :to="topic.route">{{ topic.topic }}</router-link></span></span><br /></span>
+      <span v-if="mentions.length > 0"><span class="topics">{{ $t('ViewItem.Mentions') }}: <span v-for="mention in mentions" class="topic"><profile-link :address="mention"></profile-link></span></span><br /></span>
       {{ published }}
     </template>
     <template slot="body">
@@ -42,22 +44,22 @@
             <span v-if="!hasDownloaded" class="download" v-html="downloadIcon" v-on:click="downloadFile" ></span>
             <span v-if="hasDownloaded" class="check" v-html="checkIcon" ></span>
               {{ fileName }} <br/>
-              Size: {{ fileSize }}
+              {{ $t('ViewItem.Size') }}: {{ fileSize }}
             </span>
           </div>
           <div class="bodyText"><vue-markdown class="markdown" :anchorAttributes="{target:'_blank'}" :source="description"></vue-markdown></div>
           <account-info v-if="isProfile" :address="ownerAddress"></account-info>
         </div>
         <div v-if="editing" class="column">
-          <b-field label="Title">
+          <b-field :label="$t('ViewItem.Title')">
             <b-input v-model="title"></b-input>
           </b-field>
 
-          <b-field label="Description">
+          <b-field :label="$t('ViewItem.Description')">
             <b-input v-model="description" type="textarea" rows="20"></b-input>
           </b-field>
 
-          <button class="button is-primary" @click="publish">Publish</button>
+          <button class="button is-primary" @click="publish">{{ $t('ViewItem.Publish') }}</button>
         </div>
       </div>
 
@@ -65,6 +67,8 @@
 
       <div v-if="!short">
         <token-view v-if="isToken" :itemId="itemId"></token-view>
+
+        <item-token :itemId="itemId"></item-token>
 
         <div v-if="isFeed">
           <view-item v-for="itemId in feedItemIds" :short="true" :itemId="itemId" :key="itemId"></view-item>
@@ -74,11 +78,11 @@
 
           <div v-if="startReply">
             <b-input v-model="reply" type="textarea" class="comment-box"></b-input>
-            <button class="button is-primary" @click="publishReply">Reply</button>
-            <button class="button" @click="startReply = false">Close</button>
+            <button class="button is-primary" @click="publishReply">{{ $t('ViewItem.Reply') }}</button>
+            <button class="button" @click="startReply = false">{{ $t('ViewItem.Close') }}</button>
           </div>
           <div v-else>
-            <button class="button is-primary" @click="startReply = true">Reply</button>
+            <button class="button is-primary" @click="startReply = true">{{ $t('ViewItem.Reply') }}</button>
           </div>
         </div>
       </div>
@@ -86,26 +90,27 @@
   </page>
 </template>
 
-<script>
-  import MixItem from '../../lib/MixItem.js'
-  import MixContent from '../../lib/MixContent.js'
+<script lang="ts">
+  import MixItem from '../../lib/MixItem'
+  import MixContent from '../../lib/MixContent'
   import Comment from './Comment.vue'
   import AccountInfo from './AccountInfo.vue'
   import ItemLink from './ItemLink.vue'
   import ProfileLink from './ProfileLink.vue'
   import Page from './Page.vue'
   import Reactions from './Reactions.vue'
+  import ItemToken from './ItemToken.vue'
   import TokenView from './mixins/TokenView.vue'
   import VueMarkdown from 'vue-markdown'
   import TitleMixinProto from '../../lib/protobuf/TitleMixin_pb.js'
-  import MixinSchemaMixinProto from '../../lib/protobuf/MixinSchemaMixin_pb.js'
   import BodyTextMixinProto from '../../lib/protobuf/BodyTextMixin_pb.js'
   import LanguageMixinProto from '../../lib/protobuf/LanguageMixin_pb.js'
   import { clipboard } from 'electron'
-  import formatByteCount from '../../lib/formatByteCount.js'
+  import formatByteCount from '../../lib/formatByteCount'
   import File from '../../lib/File.js'
   import twemoji from 'twemoji'
-  import setTitle from '../../lib/setTitle.js'
+  import setTitle from '../../lib/setTitle'
+  import bs58 from 'bs58'
 
   export default {
     name: 'view-item',
@@ -126,6 +131,7 @@
       AccountInfo,
       ItemLink,
       ProfileLink,
+      ItemToken,
       TokenView,
       VueMarkdown,
       Reactions,
@@ -180,6 +186,7 @@
     },
     methods: {
       resetData(data) {
+        data.avatar = ''
         data.title = ''
         data.editable = false
         data.editing = false
@@ -196,6 +203,7 @@
         data.feed = ''
         data.feedRoute = ''
         data.topics = []
+        data.mentions = []
         data.published = ''
         data.image = ''
         data.description = ''
@@ -235,6 +243,7 @@
         let profileItem = await new MixItem(this.$root, profileItemId).init()
         let profileRevision = await profileItem.latestRevision().load()
         this.owner = profileRevision.getTitle()
+        this.avatar = profileRevision.getImage(64, 64)
 
         let feedIds = await this.$mixClient.itemDagFeedItems.methods.getAllParentIds(this.itemId).call()
         if (feedIds.length > 0) {
@@ -256,38 +265,18 @@
         }
         this.topics = topics
 
+        this.mentions = await this.$mixClient.itemMentions.methods.getItemMentions(this.itemId).call()
         this.commentIds = await this.$mixClient.itemDagComments.methods.getAllChildIds(this.itemId).call()
         this.feedItemIds = (await this.$mixClient.itemDagFeedItems.methods.getAllChildIds(this.itemId).call()).reverse()
 
         if (this.short && !trustLevel) {
           this.title = ''
-          this.description = 'Author not trusted.'
+          this.description = this.$t('ViewItem.AuthorNotTrusted')
           return
         }
 
         let firstRevision = await item.firstRevision().load()
         let revision = await item.latestRevision().load()
-
-        try {
-          this.title = revision.getTitle()
-          if (!this.short) {
-            setTitle(this.title)
-          }
-          let timestamp = firstRevision.getTimestamp()
-          this.published = 'Published ' + ((timestamp > 0) ? 'on ' + new Date(timestamp * 1000).toLocaleDateString() : 'just now')
-          this.image = revision.getImage(512)
-          this.description = revision.getBodyText()
-        }
-        catch (e) {}
-
-        if (revision.content.existMixin('0x3c5bba9c')) {
-          this.hasFile = true
-          let fileData = revision.getFile()
-          this.file = new File(this.$root, fileData.name, fileData.size, fileData.hash)
-          this.fileName = fileData.name
-          this.fileSize = formatByteCount(fileData.size)
-          this.fileHash = fileData.hash
-        }
 
         if (revision.content.existMixin('0xbeef2144')) {
           this.isProfile = true
@@ -303,9 +292,33 @@
         else if (revision.content.existMixin('0x9fbbfaad')) {
           this.isToken = true
           try {
-            this.isPortfolio = await this.$activeAccount.get().call(this.$mixClient.accountTokens, 'getItemExists', [this.itemId])
+            await this.$db.get('/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/' + this.itemId)
+            this.isPortfolio = true
           }
           catch (e) {}
+        }
+
+        try {
+          this.title = revision.getTitle()
+          if (!this.short) {
+            setTitle(this.title)
+          }
+          let timestamp = firstRevision.getTimestamp()
+          this.published = this.$t('ViewItem.Published') + ': ' + ((timestamp > 0) ? new Date(timestamp * 1000).toLocaleDateString() : this.$t('ViewItem.JustNow'))
+          if (!this.isProfile) {
+            this.image = revision.getImage(512)
+          }
+          this.description = revision.getBodyText()
+        }
+        catch (e) {}
+
+        if (revision.content.existMixin('0x3c5bba9c')) {
+          this.hasFile = true
+          let fileData = revision.getFile()
+          this.file = new File(this.$root, fileData.name, fileData.size, fileData.hash)
+          this.fileName = fileData.name
+          this.fileSize = formatByteCount(fileData.size)
+          this.fileHash = fileData.hash
         }
 
         if (!this.short) {
@@ -338,8 +351,8 @@
         }
       },
       copyItemId(event) {
-        clipboard.writeText(this.itemId)
-        this.$buefy.toast.open('itemId copied')
+        clipboard.writeText(bs58.encode(Buffer.from(this.$mixClient.web3.utils.hexToBytes(this.itemId.substr(0, 50)))))
+        this.$buefy.toast.open(this.$t('ViewItem.ItemIdCopied'))
       },
       async toggleEdit(event) {
         this.editing = !this.editing
@@ -356,11 +369,11 @@
         this.isSubscribed = false
       },
       async portfolio(event) {
-        await this.$activeAccount.get().sendData(this.$mixClient.accountTokens, 'addItem', [this.itemId], 0, 'Add token to portfolio')
+        await this.$db.put('/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/' + this.itemId, this.itemId)
         this.isPortfolio = true
       },
       async unportfolio(event) {
-        await this.$activeAccount.get().sendData(this.$mixClient.accountTokens, 'removeItem', [this.itemId], 0, 'Remove token from portfolio')
+        await this.$db.del('/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/' + this.itemId)
         this.isPortfolio = false
       },
       async publish(event) {
@@ -388,7 +401,7 @@
 
         // Language
         let languageMessage = new LanguageMixinProto.LanguageMixin()
-        languageMessage.setLanguageTag('en-US')
+        languageMessage.setLanguageTag(this.$settings.get('locale'))
         content.addMixinPayload(0x9bc7a0e6, languageMessage.serializeBinary())
 
         // BodyText
@@ -436,6 +449,16 @@
   .clickable {
     cursor: pointer;
     user-select: none;
+  }
+
+  .avatar {
+    margin-right: 10px;
+  }
+
+  .avatar >>> img {
+    object-fit: cover;
+    width: 64px;
+    height: 64px;
   }
 
   .image {

@@ -1,57 +1,57 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('nodeStatus') }}
+      {{ $t('NodeStatus.NodeStatus') }}
     </template>
 
     <template slot="body">
-      <b-field :label="$t('acuityVersion')">
+      <b-field :label="$t('NodeStatus.AcuityVersion')">
         {{ acuityVersion }}
       </b-field>
       <div class="columns">
         <div class="column">
-          <h2 class="subtitle">{{ $t('mixBlockchain') }}</h2>
-          <b-field :label="$t('agent')">
+          <h2 class="subtitle">{{ $t('NodeStatus.MixBlockchain') }}</h2>
+          <b-field :label="$t('NodeStatus.Agent')">
             {{ agent }}
           </b-field>
-          <b-field :label="$t('web3Version')">
+          <b-field :label="$t('NodeStatus.Web3Version')">
             {{ web3Version }}
           </b-field>
-          <b-field :label="$t('protocolVersion')">
+          <b-field :label="$t('NodeStatus.ProtocolVersion')">
             {{ protocolVersion }}
           </b-field>
-          <b-field :label="$t('networkId')">
+          <b-field :label="$t('NodeStatus.NetworkId')">
             {{ networkId }}
           </b-field>
-          <b-field :label="$t('blockNumber')">
-            {{ blockNumber }}
+          <b-field :label="$t('NodeStatus.BlockNumber')">
+            {{ blockNumber }} (<timeago :datetime="blockTimestamp" :autoUpdate="true"></timeago>)
           </b-field>
-          <b-field :label="$t('peerCount')">
+          <b-field :label="$t('NodeStatus.PeerCount')">
             {{ peerCount }}
           </b-field>
         </div>
         <div class="column">
           <h2 class="subtitle">IPFS</h2>
-          <b-field :label="$t('agent')">
+          <b-field :label="$t('NodeStatus.Agent')">
             {{ ipfsAgent }}
           </b-field>
-          <b-field :label="$t('protocol')">
+          <b-field :label="$t('NodeStatus.Protocol')">
             {{ ipfsProtocol }}
           </b-field>
-          <b-field :label="$t('addresses')">
+          <b-field :label="$t('NodeStatus.Addresses')">
             <ul>
               <li v-for="address in ipfsAddresses">
                 {{ address }}
               </li>
             </ul>
           </b-field>
-          <b-field :label="$t('peerCount')">
+          <b-field :label="$t('NodeStatus.PeerCount')">
             {{ ipfsPeerCount }}
           </b-field>
-          <b-field :label="$t('repoSize')">
+          <b-field :label="$t('NodeStatus.RepoSize')">
             {{ ipfsRepoSize }}
           </b-field>
-          <b-field :label="$t('repoObjectCount')">
+          <b-field :label="$t('NodeStatus.RepoObjectCount')">
             {{ ipfsRepoObjectCount }}
           </b-field>
         </div>
@@ -60,13 +60,12 @@
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import { remote } from 'electron'
   import Page from './Page.vue'
   import throttle from 'just-throttle'
-  import { ipcRenderer } from 'electron'
-  import formatByteCount from '../../lib/formatByteCount.js'
-  import setTitle from '../../lib/setTitle.js'
+  import formatByteCount from '../../lib/formatByteCount'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'node-status',
@@ -81,6 +80,7 @@
         protocolVersion: '',
         networkId: '',
         blockNumber: '',
+        blockTimestamp: null,
         peerCount: '',
         ipfsAgent: '',
         ipfsProtocol: '',
@@ -91,17 +91,16 @@
       }
     },
     methods: {
-      async loadMixData() {
+      async loadBlockData() {
         let blockNumber = await this.$mixClient.web3.eth.getBlockNumber()
         this.blockNumber = blockNumber.toLocaleString()
-        this.peerCount = await this.$mixClient.web3.eth.net.getPeerCount()
+        let block = await this.$mixClient.web3.eth.getBlock(blockNumber)
+        this.blockTimestamp = new Date(block.timestamp * 1000)
       },
-      async loadIpfsData() {
-        try {
-          let ipfsId = await this.$ipfsClient.get('id')
-          this.ipfsAgent = ipfsId.AgentVersion
-          this.ipfsProtocol = ipfsId.ProtocolVersion
+      async loadPeriodicData() {
+          this.peerCount = await this.$mixClient.web3.eth.net.getPeerCount()
 
+          let ipfsId = await this.$ipfsClient.get('id')
           let addresses = []
           for (let address of ipfsId.Addresses) {
             addresses.push(address.split('/ipfs/')[0])
@@ -114,14 +113,10 @@
           let repoStat = await this.$ipfsClient.get('repo/stat')
           this.ipfsRepoSize = formatByteCount(repoStat.RepoSize)
           this.ipfsRepoObjectCount = repoStat.NumObjects
-        }
-        catch (e) {
-          setTimeout(this.loadIpfsData, 500)
-        }
       },
     },
     async created() {
-      setTitle(this.$t('nodeStatus'))
+      setTitle(this.$t('NodeStatus.NodeStatus'))
       if (process.env.NODE_ENV == 'development') {
         this.acuityVersion = process.env.npm_package_version
       }
@@ -133,17 +128,19 @@
       let protocolVersion = await this.$mixClient.web3.eth.getProtocolVersion()
       this.protocolVersion = this.$mixClient.web3.utils.hexToNumber(protocolVersion)
       this.networkId = await this.$mixClient.web3.eth.net.getId()
+      let ipfsId = await this.$ipfsClient.get('id')
+      this.ipfsAgent = ipfsId.AgentVersion
+      this.ipfsProtocol = ipfsId.ProtocolVersion
 
-      let loadMixData = throttle(this.loadMixData, 500, true)
-
+      let loadBlockData = throttle(this.loadBlockData, 500, true)
       this.newBlockHeadersEmitter = this.$mixClient.web3.eth.subscribe('newBlockHeaders')
       .on('data', block => {
-        loadMixData()
+        loadBlockData()
       })
+      loadBlockData()
 
-      loadMixData()
-      this.ipfsInterval = setInterval(this.loadIpfsData, 10000)
-      this.loadIpfsData()
+      this.ipfsInterval = setInterval(this.loadPeriodicData, 10000)
+      this.loadPeriodicData()
     },
     destroyed() {
       this.newBlockHeadersEmitter.unsubscribe()

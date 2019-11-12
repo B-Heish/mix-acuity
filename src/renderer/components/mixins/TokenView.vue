@@ -1,79 +1,79 @@
 <template>
   <div>
-		<b-field label="Address">
+		<b-field :label="$t('TokenView.Address')">
 			{{ address }}
 		</b-field>
-		<b-field label="Symbol">
+		<b-field :label="$t('TokenView.Symbol')">
 			{{ symbol }}
 		</b-field>
-		<b-field label="Name">
+		<b-field :label="$t('TokenView.Name')">
 			{{ name }}
 		</b-field>
-		<b-field label="Start">
+		<b-field :label="$t('TokenView.Start')">
 			{{ start }}
 		</b-field>
-		<b-field label="Owner">
+		<b-field :label="$t('TokenView.Owner')">
       <profile-link :address="owner"></profile-link>
 		</b-field>
-    <b-field label="Initial balance">
+    <b-field :label="$t('TokenView.InitialBalance')">
 			{{ initialBalance }}
 		</b-field>
-		<b-field label="Daily payout">
+		<b-field :label="$t('TokenView.DailyPayout')">
 			{{ dailyPayout }}
 		</b-field>
-		<b-field label="Total supply">
+		<b-field :label="$t('TokenView.TotalSupply')">
 			{{ totalSupply }}
 		</b-field>
-		<b-field label="Your balance">
+		<b-field :label="$t('TokenView.YourBalance')">
 			{{ balance }}
 		</b-field>
 		<b-tabs>
-			<b-tab-item :label="$t('transactions')">
+			<b-tab-item :label="$t('TokenView.Transactions')">
 				<b-table :data="data" :row-class="(row, index) => (row.amount < 0) ? 'send' : 'receive'" default-sort="timestamp" default-sort-direction="desc">
 					<template slot-scope="props">
 						<b-table-column field="timestamp" :visible="false" sortable>
 							{{ props.row.timestamp }}
 						</b-table-column>
 
-						<b-table-column :label="$t('when')">
+						<b-table-column :label="$t('TokenView.When')">
 							<timeago v-if="props.row.confirmed" :datetime="props.row.when" :autoUpdate="true"></timeago>
-							<span v-else>pending</span>
+							<span v-else>{{ $t('TokenView.Pending') }}</span>
 						</b-table-column>
 
-						<b-table-column label="Account">
+						<b-table-column :label="$t('TokenView.Account')">
               <profile-link :address="props.row.who" :key="props.row.who"></profile-link>
 						</b-table-column>
 
-						<b-table-column :label="$t('amount')" numeric>
+						<b-table-column :label="$t('TokenView.Amount')" numeric>
 							{{ props.row.amount }}
 						</b-table-column>
 					</template>
 				</b-table>
 			</b-tab-item>
 
-			<b-tab-item :label="$t('send')">
+			<b-tab-item :label="$t('TokenView.Send')">
 				<template v-if="!isConfirm">
-					<b-field :label="$t('to')" :type="{ 'is-danger': toError }" :message="toError">
+					<b-field :label="$t('TokenView.To')" :type="{ 'is-danger': toError }" :message="toError">
 						<b-input v-model="to" @input="checkTo" placeholder="0x0000000000000000000000000000000000000000"></b-input>
 					</b-field>
-					<b-field v-if="!isSendAll" :label="$t('amount')" :type="{ 'is-danger': amountError }" :message="amountError">
+					<b-field v-if="!isSendAll" :label="$t('TokenView.Amount')" :type="{ 'is-danger': amountError }" :message="amountError">
 						<b-input v-model="amount" @input="checkAmount"></b-input>
 					</b-field>
 					<b-field message="Send all account funds to the destination.">
 						<b-checkbox v-model="isSendAll">
-							Send all
+							{{ $t('TokenView.SendAll') }}
 						</b-checkbox>
 					</b-field>
-					<button type="submit" class="button is-primary" @click="send">{{ $t('send') }}</button>
+					<button type="submit" class="button is-primary" @click="send">{{ $t('TokenView.Send') }}</button>
 				</template>
 				<template v-else>
-					<b-field :label="$t('to')">
+					<b-field :label="$t('TokenView.To')">
 						<code>{{ to }}</code>
 					</b-field>
-					<b-field :label="$t('amount')">
+					<b-field :label="$t('TokenView.Amount')">
 						{{ amount }}
 					</b-field>
-					<button type="button" class="button is-primary" @click="confirm">Confirm</button>
+					<button type="button" class="button is-primary" @click="confirm">{{ $t('TokenView.Confirm') }}</button>
 					<button type="button" class="button" @click="cancel">Cancel</button>
 				</template>
 			</b-tab-item>
@@ -81,16 +81,16 @@
         <div class="tile is-ancestor">
           <div class="tile">
             <section>
-              <b-field label="MIX Liquidity">
+              <b-field :label="$t('TokenView.MixLiquidity')">
                 {{ liquidityMix }}
               </b-field>
-              <b-field label="Token Liquidity">
+              <b-field :label="$t('TokenView.TokenLiquidity')">
                 {{ liquidityToken }}
               </b-field>
-              <b-field label="My Liquidity">
+              <b-field :label="$t('TokenView.MyLiquidity')">
                 {{ liquidityMine }}
               </b-field>
-              <b-field label="MIX per token">
+              <b-field :label="$t('TokenView.MixPerToken')">
           			{{ mixPerToken }}
           		</b-field>
             </section>
@@ -99,21 +99,21 @@
         <div class="tile is-ancestor">
           <div class="tile">
             <section>
-              <b-field :label="$t('maxTokens')">
+              <b-field :label="$t('TokenView.MaxTokens')">
                 <b-input v-model="addLiquidityMaxTokens"></b-input>
               </b-field>
               <b-field label="MIX">
                 <b-input v-model="addLiquidityMix"></b-input>
               </b-field>
-              <button type="submit" class="button" @click="addLiquidity">{{ $t('addLiquidity') }}</button>
+              <button type="submit" class="button" @click="addLiquidity">{{ $t('TokenView.AddLiquidity') }}</button>
             </section>
           </div>
           <div class="tile">
             <section>
-              <b-field label="Liquidity">
+              <b-field :label="$t('TokenView.Liquidity')">
                 <b-input v-model="removeLiquidityUni"></b-input>
               </b-field>
-              <button type="submit" class="button" @click="removeLiquidity">{{ $t('removeLiquidity') }}</button>
+              <button type="submit" class="button" @click="removeLiquidity">{{ $t('TokenView.RemoveLiquidity') }}</button>
             </section>
           </div>
           <div class="tile">
@@ -121,35 +121,30 @@
               <b-field label="MIX">
                 <b-input v-model="mixToTokensMix"></b-input>
               </b-field>
-              <button type="submit" class="button" @click="mixToTokens">MIX to tokens</button>
+              <button type="submit" class="button" @click="mixToTokens">{{ $t('TokenView.MixToTokens') }}</button>
             </section>
           </div>
           <div class="tile">
             <section>
-              <b-field label="Tokens">
+              <b-field :label="$t('TokenView.Tokens')">
                 <b-input v-model="tokensToMixTokens"></b-input>
               </b-field>
-              <button type="submit" class="button" @click="tokensToMix">Tokens to MIX</button>
+              <button type="submit" class="button" @click="tokensToMix">{{ $t('TokenView.TokensToMix') }}</button>
             </section>
           </div>
         </div>
-      </b-tab-item>
-      <b-tab-item :label="$t('holders')">
-        <token-holders v-if="address" :address="address" :itemId="itemId"></token-holders>
       </b-tab-item>
 		</b-tabs>
   </div>
 </template>
 
-<script>
-  import TokenHolders from '../TokenHolders.vue'
+<script lang="ts">
   import ProfileLink from '../ProfileLink.vue'
 
   export default {
     name: 'token-view',
     props: ['itemId'],
     components: {
-      TokenHolders,
       ProfileLink,
     },
     data() {
@@ -200,7 +195,7 @@
 		},
     async created() {
 			await this.loadData()
-			let token = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/CreatorToken.abi.json'), this.address)
+			let token = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/MixCreatorToken.abi.json'), this.address)
 			this.transferFromEmitter = token.events.Transfer({
 				filter: {
 					from: this.$activeAccount.get().contractAddress,
@@ -215,7 +210,7 @@
 					'confirmed': block != null,
 					'when': block ? new Date(block.timestamp * 1000) : null,
 					'who': log.returnValues.to,
-					'amount': '-' + this.$mixClient.web3.utils.fromWei(this.$mixClient.web3.utils.toBN(log.returnValues.value)),
+					'amount': '-' + this.$mixClient.formatWei(log.returnValues.value),
 				})
 			})
 
@@ -233,7 +228,7 @@
 					'confirmed': block != null,
 					'when': block ? new Date(block.timestamp * 1000) : null,
 					'who': log.returnValues.from,
-					'amount': this.$mixClient.web3.utils.fromWei(this.$mixClient.web3.utils.toBN(log.returnValues.value)),
+					'amount': this.$mixClient.formatWei(log.returnValues.value),
 				})
 			})
     },
@@ -243,28 +238,34 @@
     },
 		methods: {
 			async loadData() {
-				this.address = await this.$mixClient.tokenRegistry.methods.getToken(this.itemId).call()
-				this.token = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/CreatorToken.abi.json'), this.address)
+        try {
+  				this.address = await this.$mixClient.tokenItemRegistry.methods.getToken(this.itemId).call()
+        }
+        catch (e) {
+          this.address = await this.$mixClient.tokenItemRegistryOld.methods.getToken(this.itemId).call()
+          await this.$activeAccount.get().sendData(this.$mixClient.tokenItemRegistry, 'register', [this.address, this.itemId], 0, 'Register token item')
+          await this.$activeAccount.get().sendData(this.$mixClient.accountTokens, 'addItem', [this.itemId], 0, 'Add token item to account.')
+        }
+				this.token = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/MixCreatorToken.abi.json'), this.address)
 				this.symbol = await this.token.methods.symbol().call()
 				this.name = await this.token.methods.name().call()
 				this.start =  new Date(await this.token.methods.start().call() * 1000).toLocaleDateString()
 				this.owner = await this.token.methods.owner().call()
-				let toBN = this.$mixClient.web3.utils.toBN
-        this.initialBalance = this.$mixClient.web3.utils.fromWei(toBN(await this.token.methods.initialBalance().call()))
-				this.dailyPayout = this.$mixClient.web3.utils.fromWei(toBN(await this.token.methods.dailyPayout().call()))
-				this.totalSupply = this.$mixClient.web3.utils.fromWei(toBN(await this.token.methods.totalSupply().call()))
-				this.balance = this.$mixClient.web3.utils.fromWei(toBN(await this.token.methods.balanceOf(this.$activeAccount.get().contractAddress).call()))
+        this.initialBalance = this.$mixClient.formatWei(await this.token.methods.initialBalance().call())
+				this.dailyPayout = this.$mixClient.formatWei(await this.token.methods.dailyPayout().call())
+				this.totalSupply = this.$mixClient.formatWei(await this.token.methods.totalSupply().call())
+				this.balance = this.$mixClient.formatWei(await this.token.methods.balanceOf(this.$activeAccount.get().contractAddress).call())
 
         this.exchangeAddress = await this.$mixClient.uniswapFactory.methods.getExchange(this.address).call()
         this.exchange = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/UniswapExchange.abi.json'), this.exchangeAddress)
-        this.liquidityMix = this.$mixClient.web3.utils.fromWei(toBN(await this.$mixClient.web3.eth.getBalance(this.exchangeAddress, 'pending')))
-        this.liquidityToken = this.$mixClient.web3.utils.fromWei(toBN(await this.token.methods.balanceOf(this.exchangeAddress).call()))
-        this.liquidityMine = this.$mixClient.web3.utils.fromWei(toBN(await this.exchange.methods.balanceOf(this.$activeAccount.get().contractAddress).call()))
+        this.liquidityMix = this.$mixClient.formatWei(await this.$mixClient.web3.eth.getBalance(this.exchangeAddress, 'pending'))
+        this.liquidityToken = this.$mixClient.formatWei(await this.token.methods.balanceOf(this.exchangeAddress).call())
+        this.liquidityMine = this.$mixClient.formatWei(await this.exchange.methods.balanceOf(this.$activeAccount.get().contractAddress).call())
         try {
-          this.mixPerToken = this.$mixClient.web3.utils.fromWei(toBN(await this.exchange.methods.getEthToTokenOutputPrice(this.$mixClient.web3.utils.toWei('1')).call()))
+          this.mixPerToken = this.$mixClient.formatWei(await this.exchange.methods.getEthToTokenOutputPrice(this.$mixClient.web3.utils.toWei('1')).call())
         }
         catch (e) {
-          this.mixPerToken = 'n/a'
+          this.mixPerToken = this.$t('TokenView.NA')
         }
 			},
 			checkTo(event) {
@@ -290,7 +291,7 @@
 
         let error = false
         if (!this.$mixClient.web3.utils.isAddress(this.to)) {
-          this.toError = 'Invalid address.'
+          this.toError = this.$t('TokenView.InvalidAddress')
           error = true
         }
 
@@ -306,16 +307,14 @@
             }
           }
           catch (e) {
-            this.amountError = 'Invalid amount.'
+            this.amountError = this.$t('TokenView.InvalidAmount')
             error = true
           }
         }
 
-        if (error) {
-          return false
+        if (!error) {
+          this.isConfirm = true
         }
-
-        this.isConfirm = true
 			},
 			async cancel(event) {
 	      if (this.isSendAll) {
@@ -324,7 +323,7 @@
 	      this.isConfirm = false
 	    },
 	    async confirm(event) {
-				let contract = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/CreatorToken.abi.json'), this.address)
+				let contract = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/MixCreatorToken.abi.json'), this.address)
 				await this.$activeAccount.get().sendData(contract, 'transfer', [this.to, this.$mixClient.web3.utils.toWei(this.amount)], 0, 'Send token')
 	      this.loadData()
 	      this.to = ''

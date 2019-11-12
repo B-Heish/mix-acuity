@@ -7,11 +7,12 @@
     <b-field v-if="enterPassword" :type="passwordFieldType">
       <b-input type="password" v-model="password" password-reveal @keydown.native.enter="unlock"></b-input>
     </b-field>
+    <div>{{ balance }} MIX</div>
   </div>
 </template>
 
-<script>
-  import MixItem from '../../lib/MixItem.js'
+<script lang="ts">
+  import MixItem from '../../lib/MixItem'
 
   export default {
     name: 'active-account',
@@ -23,14 +24,16 @@
         enterPassword: false,
         passwordFieldType: '',
         password: '',
+        balance: '',
       }
     },
     methods: {
       async loadData() {
         this.unlocked = this.$activeAccount.get().isUnlocked()
         try {
+          this.balance = this.$mixClient.formatWei(await this.$activeAccount.get().getBalance())
           let itemId = await this.$activeAccount.get().call(this.$mixClient.accountProfile, 'getProfile')
-          let item = await new MixItem(this, itemId).init()
+          let item: MixItem = await new MixItem(this, itemId).init()
           let revision = await item.latestRevision().load()
           this.title = revision.getTitle()
           this.image = revision.getImage(100, 100)
@@ -62,10 +65,15 @@
     },
     created() {
       this.$root.$on('change-active-account', this.changeActiveAccount)
+      this.newBlockHeadersEmitter = this.$mixClient.web3.eth.subscribe('newBlockHeaders')
+      .on('data', block => {
+        this.loadData()
+      })
       this.loadData()
     },
     destroyed() {
       this.$root.$off('change-active-account', this.changeActiveAccount)
+      this.newBlockHeadersEmitter.unsubscribe()
     },
   }
 </script>

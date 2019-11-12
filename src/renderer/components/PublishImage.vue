@@ -1,20 +1,20 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('publishImage') }}
+      {{ $t('PublishImage.PublishImage') }}
     </template>
 
     <template slot="body">
-      <b-field label="Title">
+      <b-field :label="$t('PublishImage.Title')">
         <b-input v-model="title"></b-input>
       </b-field>
 
-      <b-field label="Description">
+      <b-field :label="$t('PublishImage.Description')">
         <b-input v-model="description" type="textarea"></b-input>
       </b-field>
 
-      <b-field label="Feed">
-        <b-select v-model="feedId" placeholder="Select a feed">
+      <b-field :label="$t('PublishImage.Feed')">
+        <b-select v-model="feedId" :placeholder="$t('PublishImage.SelectAFeed')">
           <option
             v-for="feed in feeds"
             :value="feed.itemId"
@@ -24,47 +24,54 @@
         </b-select>
       </b-field>
 
+      <token-selector v-model="tokenItemId"></token-selector>
       <topic-selector v-model="topics"></topic-selector>
+      <mention-selector v-model="mentions"></mention-selector>
 
-      <b-field label="Image" :message="filepath">
-        <button class="button" @click="chooseFile">{{ $t('chooseImage') }}</button>
+      <b-field :label="$t('PublishImage.Image')" :message="filepath">
+        <button class="button" @click="chooseFile">{{ $t('PublishImage.ChooseImage') }}</button>
       </b-field>
 
-      <button class="button is-primary" @click="publish">{{ $t('publish') }}</button>
+      <button class="button is-primary" @click="publish">{{ $t('PublishImage.Publish') }}</button>
     </template>
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
+  import TokenSelector from './TokenSelector.vue'
   import TopicSelector from './TopicSelector.vue'
+  import MentionSelector from './MentionSelector.vue'
   import LanguageMixinProto from '../../lib/protobuf/LanguageMixin_pb.js'
   import TitleMixinProto from '../../lib/protobuf/TitleMixin_pb.js'
   import BodyTextMixinProto from '../../lib/protobuf/BodyTextMixin_pb.js'
-  import ImageMixinProto from '../../lib/protobuf/ImageMixin_pb.js'
-  import Image from '../../lib/Image.js'
-  import MixItem from '../../lib/MixItem.js'
-  import MixContent from '../../lib/MixContent.js'
-  import setTitle from '../../lib/setTitle.js'
+  import Image from '../../lib/Image'
+  import MixItem from '../../lib/MixItem'
+  import MixContent from '../../lib/MixContent'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'publish-image',
     components: {
       Page,
+      TokenSelector,
       TopicSelector,
+      MentionSelector,
     },
     data() {
       return {
         title: '',
         description: '',
+        tokenItemId: '',
         feeds: [{itemId: '0', title: 'none'}],
         feedId: '0',
         topics: [],
+        mentions: [],
         filepath: '',
       }
     },
     async created() {
-      setTitle(this.$t('publishImage'))
+      setTitle(this.$t('PublishImage.PublishImage'))
 
       let feeds = await this.$activeAccount.get().call(this.$mixClient.accountFeeds, 'getAllItems')
       for (let itemId of feeds) {
@@ -81,14 +88,13 @@
       }
     },
     methods: {
-      chooseFile(event) {
+      async chooseFile(event) {
         let {dialog} = require('electron').remote
-        dialog.showOpenDialog({
-          title: 'Choose image',
-          filters: [{name: 'Images', extensions: ['webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg', 'svgz', 'ppm']}],
-        }, (fileNames) => {
-          this.filepath = fileNames[0]
+        let result: any = await dialog.showOpenDialog(null, {
+          title: this.$t('PublishImage.ChooseImage'),
+          filters: [{name: this.$t('PublishImage.Images'), extensions: ['webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg', 'svgz', 'ppm']}],
         })
+        this.filepath = result.filePaths[0]
       },
       async publish(event) {
         let flagsNonce = '0x0f' + this.$mixClient.web3.utils.randomHex(31).substr(2)
@@ -97,12 +103,14 @@
         let content = new MixContent(this.$root)
 
         // Image
-        let image = new Image(this.$root, this.filepath)
-        content.addMixinPayload(0x045eee8c, await image.createMixin())
+        if (this.filepath != '') {
+          let image = new Image(this.$root, this.filepath)
+          content.addMixinPayload(0x045eee8c, await image.createMixin())
+        }
 
         // Language
         let languageMessage = new LanguageMixinProto.LanguageMixin()
-        languageMessage.setLanguageTag('en-US')
+        languageMessage.setLanguageTag(this.$settings.get('locale'))
         content.addMixinPayload(0x9bc7a0e6, languageMessage.serializeBinary())
 
         // Title
@@ -117,6 +125,10 @@
 
         let ipfsHash = await content.save()
 
+        if (this.tokenItemId != '') {
+          await this.$activeAccount.get().sendData(this.$mixClient.itemDagTokenItems, 'addChild', [this.tokenItemId, '0x26b10bb026700148962c4a948b08ae162d18c0af', flagsNonce], 0, 'Attach token item')
+        }
+
         if (this.feedId != '0') {
           await this.$activeAccount.get().sendData(this.$mixClient.itemDagFeedItems, 'addChild', [this.feedId, '0x26b10bb026700148962c4a948b08ae162d18c0af', flagsNonce], 0, 'Attach feed item')
         }
@@ -130,6 +142,10 @@
             await this.$activeAccount.get().sendData(this.$mixClient.itemTopics, 'createTopic', [topic], 0, 'Create topic.')
           }
           await this.$activeAccount.get().sendData(this.$mixClient.itemTopics, 'addItem', [topicHash, '0x26b10bb026700148962c4a948b08ae162d18c0af', flagsNonce], 0, 'Add item to topic.')
+        }
+
+        for (let mention of this.mentions) {
+          await this.$activeAccount.get().sendData(this.$mixClient.itemMentions, 'addItem', [mention.account, '0x26b10bb026700148962c4a948b08ae162d18c0af', flagsNonce], 0, 'Add item mention to account.')
         }
 
         await this.$activeAccount.get().sendData(this.$mixClient.itemStoreIpfsSha256, 'create', [flagsNonce, ipfsHash], 0, 'Create image')

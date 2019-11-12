@@ -1,56 +1,55 @@
 <template>
   <page>
     <template slot="title">
-      {{ $t('editProfile') }}
+      {{ $t('ProfileEdit.EditProfile') }}
     </template>
 
     <template slot="body">
-      <b-field :label="$t('name')">
+      <b-field :label="$t('ProfileEdit.Name')">
         <b-input v-model="name"></b-input>
       </b-field>
 
-      <b-field :label="$t('accountType')">
+      <b-field :label="$t('ProfileEdit.AccountType')">
         <b-select v-model="type">
-          <option value="0">Anon</option>
-          <option value="1">Person</option>
-          <option value="2">Project</option>
-          <option value="3">Organization</option>
-          <option value="4">Proxy</option>
-          <option value="5">Parody</option>
-          <option value="6">Bot</option>
-          <option value="7">Shill</option>
-          <option value="8">Test</option>
+          <option value="0">{{ $t('ProfileEdit.Anon') }}</option>
+          <option value="1">{{ $t('ProfileEdit.Person') }}</option>
+          <option value="2">{{ $t('ProfileEdit.Project') }}</option>
+          <option value="3">{{ $t('ProfileEdit.Organization') }}</option>
+          <option value="4">{{ $t('ProfileEdit.Proxy') }}</option>
+          <option value="5">{{ $t('ProfileEdit.Parody') }}</option>
+          <option value="6">{{ $t('ProfileEdit.Bot') }}</option>
+          <option value="7">{{ $t('ProfileEdit.Shill') }}</option>
+          <option value="8">{{ $t('ProfileEdit.Test') }}</option>
         </b-select>
       </b-field>
 
-      <b-field :label="$t('location')">
+      <b-field :label="$t('ProfileEdit.Location')">
         <b-input v-model="location"></b-input>
       </b-field>
 
-      <b-field :label="$t('bio')">
+      <b-field :label="$t('ProfileEdit.Bio')">
         <b-input v-model="bio" type="textarea"></b-input>
       </b-field>
 
       <b-field label="Image" :message="filepath">
-        <button class="button" @click="chooseFile">{{ $t('chooseImage') }}</button>
+        <button class="button" @click="chooseFile">{{ $t('ProfileEdit.ChooseImage') }}</button>
       </b-field>
 
-      <button class="button is-primary" @click="publish">{{ $t('publish') }}</button>
+      <button class="button is-primary" @click="publish">{{ $t('ProfileEdit.Publish') }}</button>
     </template>
   </page>
 </template>
 
-<script>
+<script lang="ts">
   import Page from './Page.vue'
-  import ItemProto from '../../lib/protobuf/Item_pb.js'
   import ProfileMixinProto from '../../lib/protobuf/ProfileMixin_pb.js'
   import TitleMixinProto from '../../lib/protobuf/TitleMixin_pb.js'
   import BodyTextMixinProto from '../../lib/protobuf/BodyTextMixin_pb.js'
   import LanguageMixinProto from '../../lib/protobuf/LanguageMixin_pb.js'
-  import multihash from 'multihashes'
-  import MixItem from '../../lib/MixItem.js'
-  import Image from '../../lib/Image.js'
-  import MixContent from '../../lib/MixContent.js'
+  import MixItem from '../../lib/MixItem'
+  import Image from '../../lib/Image'
+  import MixContent from '../../lib/MixContent'
+  import setTitle from '../../lib/setTitle'
 
   export default {
     name: 'profile',
@@ -74,6 +73,7 @@
       let item = await new MixItem(this, itemId).init()
       let revision = await item.latestRevision().load()
       this.name = revision.getTitle()
+      setTitle(this.name)
       this.bio = revision.getBodyText()
       this.image = revision.getImage(256)
       let profile = revision.getProfile()
@@ -81,14 +81,13 @@
       this.location = profile.location
     },
     methods: {
-      chooseFile(event) {
+      async chooseFile(event) {
         let {dialog} = require('electron').remote
-        dialog.showOpenDialog({
-          title: 'Choose image',
-          filters: [{name: 'Images', extensions: ['webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg', 'svgz', 'ppm']}],
-        }, (fileNames) => {
-          this.filepath = fileNames[0]
+        let result: any = await dialog.showOpenDialog(null, {
+          title: this.$t('ProfileEdit.ChooseImage'),
+          filters: [{name: this.$t('ProfileEdit.Images'), extensions: ['webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg', 'svgz', 'ppm']}],
         })
+        this.filepath = result.filePaths[0]
       },
       async publish(event) {
         let content = new MixContent(this.$root)
@@ -101,7 +100,7 @@
 
         // Language
         let languageMessage = new LanguageMixinProto.LanguageMixin()
-        languageMessage.setLanguageTag('en-US')
+        languageMessage.setLanguageTag(this.$settings.get('locale'))
         content.addMixinPayload(0x9bc7a0e6, languageMessage.serializeBinary())
 
         // Title

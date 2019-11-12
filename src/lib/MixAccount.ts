@@ -1,13 +1,21 @@
+let erc165Abi = require('./contracts/ERC165.abi.json')
 let accountAbi = require('./contracts/MixAccount.abi.json')
+let accountAbi2 = require('./contracts/MixAccount2.abi.json')
 import ethTx from 'ethereumjs-tx'
-import { remote } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import keythereum from 'keythereum'
 
+declare let __static: string
+
 let privateKeys = {}
 
 export default class MixAccount {
+  vue: any
+  controllerAddress: string
+  contractAddress: string
+  abiVersion: number
+  contract: any
 
   constructor(vue, address, isContract = false) {
     this.vue = vue
@@ -31,7 +39,16 @@ export default class MixAccount {
       } catch (e) {}
     }
     if (this.contractAddress) {
-      this.contract = new this.vue.$mixClient.web3.eth.Contract(accountAbi, this.contractAddress)
+      // Check which account interface we are using.
+      let erc165 = new this.vue.$mixClient.web3.eth.Contract(erc165Abi, this.contractAddress)
+      if (await erc165.methods.supportsInterface('0x527f66d8').call()) {
+        this.abiVersion = 1
+        this.contract = new this.vue.$mixClient.web3.eth.Contract(accountAbi2, this.contractAddress)
+      }
+      else {
+        this.abiVersion = 0
+        this.contract = new this.vue.$mixClient.web3.eth.Contract(accountAbi, this.contractAddress)
+      }
     }
     return this
   }
@@ -55,8 +72,9 @@ export default class MixAccount {
       to: to,
       gasPrice: '0x3b9aca00',
       data: data,
+      gas: 50000,
     }
-    rawTx.gas = 50000//await this.vue.$mixClient.web3.eth.estimateGas(rawTx)
+    //rawTx.gas = await this.vue.$mixClient.web3.eth.estimateGas(rawTx)
     let tx = new ethTx(rawTx)
     let privateKey = privateKeys[this.controllerAddress]
     tx.sign(Buffer.from(privateKey.substr(2), 'hex'))
@@ -80,6 +98,7 @@ export default class MixAccount {
         from: this.controllerAddress,
         gasPrice: '0x3b9aca00',
         data: '0x' + accountBytecode,
+        gas: 0,
       }
       rawTx.gas = this.vue.$mixClient.web3.utils.toHex(await this.vue.$mixClient.web3.eth.estimateGas(rawTx))
       let tx = new ethTx(rawTx)
@@ -95,23 +114,24 @@ export default class MixAccount {
         .put('/account/controller/' + this.controllerAddress + '/contract', this.contractAddress)
         .put('/account/contract/' + this.contractAddress + '/controller', this.controllerAddress)
         .write()
-        this.contract = new this.vue.$mixClient.web3.eth.Contract(accountAbi, this.contractAddress)
+        this.abiVersion = 1
+        this.contract = new this.vue.$mixClient.web3.eth.Contract(accountAbi2, this.contractAddress)
         resolve()
       })
     })
   }
 
-  deployToken(symbol, name, itemId, initialBalance, dailyPayout) {
+  deployToken(symbol, name, initialBalance, dailyPayout) {
     return new Promise(async (resolve, reject) => {
       if (!this.isUnlocked()) {
         this.vue.$buefy.toast.open({message: 'Account is locked', type: 'is-danger'})
         reject()
         return
       }
-      let byteCodePath = path.join(__static, 'CreatorToken.bin')
+      let byteCodePath = path.join(__static, 'MixCreatorToken.bin')
       let tokenBytecode = fs.readFileSync(byteCodePath, 'ascii').trim()
-      let types = ['string', 'string', 'address', 'bytes32', 'address', 'uint', 'uint']
-      let params = [symbol, name, this.vue.$mixClient.tokenRegistryAddress, itemId, this.contractAddress, initialBalance, dailyPayout]
+      let types = ['string', 'string', 'address', 'uint', 'uint']
+      let params = [symbol, name, this.contractAddress, initialBalance, dailyPayout]
       let paramsBytecode = this.vue.$mixClient.web3.eth.abi.encodeParameters(types, params).slice(2)
       let nonce = await this.vue.$mixClient.web3.eth.getTransactionCount(this.controllerAddress)
       let rawTx = {
@@ -143,9 +163,10 @@ export default class MixAccount {
     this.vue.$root.$emit('change-active-account', this)
   }
 
-  call(contract, method, params = []) {
-    return contract.methods[method].apply(this, params).call({
-      from: this.contractAddress
+  async call(contract, method, params = [], value = 0) {
+    return await contract.methods[method](...params).call({
+      from: this.contractAddress,
+      value: value,
     })
   }
 
@@ -179,8 +200,9 @@ export default class MixAccount {
         gasPrice: '0x3b9aca00',
         data: data,
         value: this.vue.$mixClient.web3.utils.toHex(value),
+        gas: gas,
       }
-      rawTx.gas = gas//await this.vue.$mixClient.web3.eth.estimateGas(rawTx)
+      //rawTx.gas = await this.vue.$mixClient.web3.eth.estimateGas(rawTx)
       // Check if there is sufficient balance.
       let toBN = this.vue.$mixClient.web3.utils.toBN
       let controllerBalance = toBN(await this.getUnconfirmedControllerBalance())
@@ -272,7 +294,7 @@ export default class MixAccount {
         let serializedTx = tx.serialize()
         this.vue.$mixClient.web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'))
         .on('transactionHash', async transactionHash => {
-          transaction = await this.vue.$mixClient.web3.eth.getTransaction(transactionHash)
+          let transaction = await this.vue.$mixClient.web3.eth.getTransaction(transactionHash)
           this._logTransaction(transaction, to, 'Send MIX')
           resolve(transaction)
         })
@@ -280,27 +302,65 @@ export default class MixAccount {
     }
     else {
       // Send to a contract address.
-      let transaction = await this._send(this.contract.methods.sendMix(to), value)
-      this._logTransaction(transaction, to, 'Send MIX')
-      return transaction
+      let inner = (this.abiVersion == 0) ?
+        this.contract.methods.sendMix(to) :
+        this.contract.methods.sendCallNoReturn(to, '0x');
+      let outer = await this._send(inner, value)
+      this._logTransaction(outer, to, 'Send MIX')
+      return outer
     }
+  }
+
+  private decodeError(returnData: string) {
+    let error: string
+
+    try {
+      let encoded = '0x' + returnData.slice(10)
+      error = this.vue.$mixClient.web3.eth.abi.decodeParameter('string', encoded)
+    }
+    catch (e) {
+      error = 'Unknown.'
+    }
+
+    return error
   }
 
   async sendData(contract, method, params, value, description, gas) {
     let to = contract.options.address
-    let data = contract.methods[method].apply(this, params).encodeABI()
+    let data = contract.methods[method](...params).encodeABI()
     // Test this transaction.
-    let success = await this.contract.methods.sendData(to, data).call({
-      from: this.controllerAddress,
-      value: this.vue.$mixClient.web3.utils.toHex(value),
-    })
+    let success: boolean
+    let error: string
+    switch (this.abiVersion) {
+      case 0:
+        success = await this.contract.methods.sendData(to, data).call({
+          from: this.controllerAddress,
+          value: this.vue.$mixClient.web3.utils.toHex(value),
+        })
+        if (!success) {
+          error = 'Unknown.'
+        }
+        break;
+
+      case 1:
+        let result = await this.contract.methods.sendCall(to, data).call({
+          from: this.controllerAddress,
+          value: this.vue.$mixClient.web3.utils.toHex(value),
+        })
+        success = result.success
+        if (!success) {
+          error = this.decodeError(result.returnData)
+        }
+        break;
+    }
     if (!success) {
-      this.vue.$buefy.toast.open({message: 'Transaction error', type: 'is-danger'})
+      this.vue.$buefy.toast.open({message: 'Transaction error: ' + error, type: 'is-danger'})
       return
     }
-    let transaction = await this._send(this.contract.methods.sendData(to, data), value, true, gas)
-    this._logTransaction(transaction, to, description)
-    return transaction
+    let inner = (this.abiVersion == 0) ? this.contract.methods.sendData(to, data) : this.contract.methods.sendCallNoReturn(to, data)
+    let outer = await this._send(inner, value, true, gas)
+    this._logTransaction(outer, to, description)
+    return outer
   }
 
   getControllerBalance() {
@@ -351,13 +411,7 @@ export default class MixAccount {
 
       for (let event of events) {
         if (event.transactionHash == info.hash) {
-          try {
-            let encoded = '0x' + event.returnValues.returnData.slice(10)
-            info.error = this.vue.$mixClient.web3.eth.abi.decodeParameter('string', encoded)
-          }
-          catch (e) {
-            info.error = 'Unknown.'
-          }
+          info.error = this.decodeError(event.returnValues.returnData)
         }
       }
     }

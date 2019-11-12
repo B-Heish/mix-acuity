@@ -17,10 +17,6 @@ export default new Router({
       props: true,
     },
     {
-      path: '*',
-      redirect: '/home',
-    },
-    {
       path: '/home',
       name: 'home',
       component: require('@/components/Home').default
@@ -132,6 +128,12 @@ export default new Router({
       props: true,
     },
     {
+      path: '/manage-accounts/delete/:controllerAddress',
+      name: 'manage-account-delete',
+      component: require('@/components/ManageAccountDelete').default,
+      props: true,
+    },
+    {
       path: '/node-status',
       name: 'node-status',
       component: require('@/components/NodeStatus').default
@@ -145,11 +147,6 @@ export default new Router({
       path: '/settings',
       name: 'settings',
       component: require('@/components/Settings').default
-    },
-    {
-      path: '/search',
-      name: 'search',
-      component: require('@/components/Search').default
     },
     {
       path: '/debug',
