@@ -1,19 +1,19 @@
-import multihashes from 'multihashes'
-import brotli from 'iltorb'
-import ItemProto from './protobuf/Item_pb.js'
+import brotli from './brotli'
+let ItemProto: any = require('./protobuf/Item_pb.js')
+let multihashes: any = require('multihashes')
 
-let contentCache = []
+let contentCache: any = {}
 
 export default class MixContent {
   vue: any
   mixins: any[]
 
-  constructor(vue) {
+  constructor(vue: any) {
     this.vue = vue
     this.mixins = []
   }
 
-  async load(ipfsHash) {
+  async load(ipfsHash: string) {
     if (contentCache[ipfsHash]) {
       this.mixins = contentCache[ipfsHash]
       return this
@@ -22,15 +22,15 @@ export default class MixContent {
     let response
 
     try {
-      let encodedIpfsHash = multihashes.toB58String(multihashes.encode(Buffer.from(ipfsHash.substr(2), "hex"), 'sha2-256'))
-      response = await this.vue.$ipfsClient.get('cat?arg=/ipfs/' + encodedIpfsHash, false)
+      let encodedIpfsHash = multihashes.toB58String(multihashes.encode(Buffer.from(ipfsHash.substr(2), 'hex'), 'sha2-256'))
+      response = await this.vue.$ipfsClient.get(encodedIpfsHash)
     }
     catch (e) {
       return this
     }
 
     try {
-      let itemPayload = await brotli.decompress(Buffer.from(response, "binary"))
+      let itemPayload = Buffer.from(await brotli.decompress(Buffer.from(response.toString('utf8'), 'binary')))
       let mixins = ItemProto.Item.deserializeBinary(itemPayload).getMixinPayloadList()
 
       for (let i = 0; i < mixins.length; i++) {
@@ -40,7 +40,9 @@ export default class MixContent {
         })
       }
     }
-    catch (e) {}
+    catch (e) {
+      console.log(e)
+    }
 
     contentCache[ipfsHash] = this.mixins
 
@@ -59,9 +61,9 @@ export default class MixContent {
       itemMessage.addMixinPayload(mixinMessage)
     }
 
-    let payload = await brotli.compress(Buffer.from(itemMessage.serializeBinary()))
-    let response = await this.vue.$ipfsClient.post('add', payload)
-    let decodedHash = multihashes.decode(multihashes.fromB58String(response.Hash))
+    let payload = await brotli.compress(itemMessage.serializeBinary())
+    let hash = await this.vue.$ipfsClient.add(Buffer.from(payload).toString('binary'), 'utf8')
+    let decodedHash = multihashes.decode(multihashes.fromB58String(hash))
 
     if (decodedHash.name != 'sha2-256') {
       throw 'Wrong type of multihash.'
@@ -74,8 +76,8 @@ export default class MixContent {
     return this.mixins
   }
 
-  getPayloads(mixinId) {
-    let payloads = []
+  getPayloads(mixinId: string) {
+    let payloads: any[] = []
     for (let i = 0; i < this.mixins.length; i++) {
       if (this.mixins[i].mixinId == mixinId) {
         payloads.push(this.mixins[i].payload)
@@ -84,7 +86,7 @@ export default class MixContent {
     return payloads
   }
 
-  existMixin(mixinId) {
+  existMixin(mixinId: string) {
     for (let i = 0; i < this.mixins.length; i++) {
       if (this.mixins[i].mixinId == mixinId) {
         return true
@@ -93,15 +95,15 @@ export default class MixContent {
     return false
   }
 
-  addMixinPayload(mixinId, payload?) {
+  addMixinPayload(mixinId: string, payload?: Buffer) {
     this.mixins.push({
       mixinId: mixinId,
       payload: payload,
     })
   }
 
-  removeMixins(mixinId) {
-    let newMixins = []
+  removeMixins(mixinId: string) {
+    let newMixins: any[] = []
     for (let i = 0; i < this.mixins.length; i++) {
       if (this.mixins[i].mixinId != mixinId) {
         newMixins.push(this.mixins[i])

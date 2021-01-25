@@ -1,3 +1,4 @@
+// source: ImageMixin.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -60,13 +61,15 @@ if (goog.DEBUG && !COMPILED) {
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.MipmapLevel.prototype.toObject = function(opt_includeInstance) {
@@ -76,15 +79,15 @@ proto.MipmapLevel.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.MipmapLevel} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.MipmapLevel.toObject = function(includeInstance, msg) {
-  var obj = {
+  var f, obj = {
     filesize: jspb.Message.getFieldWithDefault(msg, 1, 0),
     ipfsHash: msg.getIpfsHash_asB64()
   };
@@ -186,9 +189,12 @@ proto.MipmapLevel.prototype.getFilesize = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.MipmapLevel} returns this
+ */
 proto.MipmapLevel.prototype.setFilesize = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -225,9 +231,12 @@ proto.MipmapLevel.prototype.getIpfsHash_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.MipmapLevel} returns this
+ */
 proto.MipmapLevel.prototype.setIpfsHash = function(value) {
-  jspb.Message.setProto3BytesField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -243,13 +252,15 @@ proto.ImageMixin.repeatedFields_ = [6];
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.ImageMixin.prototype.toObject = function(opt_includeInstance) {
@@ -259,15 +270,15 @@ proto.ImageMixin.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.ImageMixin} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
 proto.ImageMixin.toObject = function(includeInstance, msg) {
-  var obj = {
+  var f, obj = {
     filename: jspb.Message.getFieldWithDefault(msg, 1, ""),
     filesize: jspb.Message.getFieldWithDefault(msg, 2, 0),
     ipfsHash: msg.getIpfsHash_asB64(),
@@ -420,9 +431,12 @@ proto.ImageMixin.prototype.getFilename = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.ImageMixin} returns this
+ */
 proto.ImageMixin.prototype.setFilename = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -435,9 +449,12 @@ proto.ImageMixin.prototype.getFilesize = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ImageMixin} returns this
+ */
 proto.ImageMixin.prototype.setFilesize = function(value) {
-  jspb.Message.setProto3IntField(this, 2, value);
+  return jspb.Message.setProto3IntField(this, 2, value);
 };
 
 
@@ -474,9 +491,12 @@ proto.ImageMixin.prototype.getIpfsHash_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.ImageMixin} returns this
+ */
 proto.ImageMixin.prototype.setIpfsHash = function(value) {
-  jspb.Message.setProto3BytesField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -489,9 +509,12 @@ proto.ImageMixin.prototype.getWidth = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ImageMixin} returns this
+ */
 proto.ImageMixin.prototype.setWidth = function(value) {
-  jspb.Message.setProto3IntField(this, 4, value);
+  return jspb.Message.setProto3IntField(this, 4, value);
 };
 
 
@@ -504,9 +527,12 @@ proto.ImageMixin.prototype.getHeight = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.ImageMixin} returns this
+ */
 proto.ImageMixin.prototype.setHeight = function(value) {
-  jspb.Message.setProto3IntField(this, 5, value);
+  return jspb.Message.setProto3IntField(this, 5, value);
 };
 
 
@@ -520,9 +546,12 @@ proto.ImageMixin.prototype.getMipmapLevelList = function() {
 };
 
 
-/** @param {!Array<!proto.MipmapLevel>} value */
+/**
+ * @param {!Array<!proto.MipmapLevel>} value
+ * @return {!proto.ImageMixin} returns this
+*/
 proto.ImageMixin.prototype.setMipmapLevelList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 6, value);
+  return jspb.Message.setRepeatedWrapperField(this, 6, value);
 };
 
 
@@ -538,9 +567,10 @@ proto.ImageMixin.prototype.addMipmapLevel = function(opt_value, opt_index) {
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.ImageMixin} returns this
  */
 proto.ImageMixin.prototype.clearMipmapLevelList = function() {
-  this.setMipmapLevelList([]);
+  return this.setMipmapLevelList([]);
 };
 
 

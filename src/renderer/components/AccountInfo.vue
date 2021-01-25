@@ -1,5 +1,11 @@
 <template>
   <div>
+    <b-field :label="$t('AccountInfo.AccountType')">
+      {{ type }}
+    </b-field>
+    <b-field :label="$t('AccountInfo.Location')">
+      {{ location }}
+    </b-field>
     <b-field :label="$t('AccountInfo.Feeds')">
       <ul>
         <li v-for="itemId in feeds" :key="itemId">
@@ -21,7 +27,7 @@
         </li>
       </ul>
     </b-field>
-    <b-field :label="$t('AccountInfo.VisibilityOverride')">
+    <b-field  v-if="!isOwnProfile" :label="$t('AccountInfo.VisibilityOverride')">
       <b-select v-model="visibility">
         <option value="none">None</option>
         <option value="whitelist">{{ $t('AccountInfo.Whitelist') }}</option>
@@ -45,18 +51,26 @@
 </template>
 
 <script lang="ts">
+  import Vue from 'vue'
   import ItemLink from './ItemLink.vue'
   import ProfileLink from './ProfileLink.vue'
+  import MixAccount from '../../lib/MixAccount'
+  import MixItem from '../../lib/MixItem'
 
-  export default {
+  export default Vue.extend({
     name: 'account-info',
-    props: ['address'],
+    props: {
+      address: String,
+    },
     components: {
       ItemLink,
       ProfileLink,
     },
     data() {
       return {
+        isOwnProfile: false,
+        type: '',
+        location: '',
         feeds: [],
         trusted: [],
         trustedThatTrust: [],
@@ -65,6 +79,54 @@
       }
     },
     async created() {
+      let account = await new MixAccount(this.$root, this.address, true).init()
+      let itemId = await account.getProfile()
+      if (await this.$activeAccount.get().getProfile() == itemId) {
+        this.isOwnProfile = true
+      }
+      let item: any = await new MixItem(this, itemId).init()
+      let revision = await item.latestRevision().load()
+      let profile = revision.getProfile()
+      this.location = profile.location
+
+      switch (profile.type) {
+        case 0:
+          this.type = this.$t('AccountInfo.Anon')
+          break
+
+        case 1:
+          this.type = this.$t('AccountInfo.Person')
+          break
+
+        case 2:
+          this.type = this.$t('AccountInfo.Project')
+          break
+
+        case 3:
+          this.type = this.$t('AccountInfo.Organization')
+          break
+
+        case 4:
+          this.type = this.$t('AccountInfo.Proxy')
+          break
+
+        case 5:
+          this.type = this.$t('AccountInfo.Parody')
+          break
+
+        case 6:
+          this.type = this.$t('AccountInfo.Bot')
+          break
+
+        case 7:
+          this.type = this.$t('AccountInfo.Shill')
+          break
+
+        case 8:
+          this.type = this.$t('AccountInfo.Test')
+          break
+      }
+
       this.feeds = await this.$activeAccount.get().call(this.$mixClient.accountFeeds, 'getAllItemsByAccount', [this.address])
       this.trusted = await this.$activeAccount.get().call(this.$mixClient.trustedAccounts, 'getAllTrustedByAccount', [this.address])
       this.trustedThatTrust = await this.$activeAccount.get().getTrustedThatTrust(this.address)
@@ -78,7 +140,7 @@
         'gte': '/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/',
         'lt': '/accountPortfolio/' + this.$activeAccount.get().contractAddress + '/z',
       })
-      .on('data', async itemId => {
+      .on('data', async (itemId: string) => {
         try {
           let address = await this.$mixClient.tokenItemRegistry.methods.getToken(itemId).call()
           let token = new this.$mixClient.web3.eth.Contract(require('../../lib/contracts/MixCreatorToken.abi.json'), address)
@@ -100,5 +162,5 @@
         this.$db.put('/accountVisibility/' + this.$activeAccount.get().contractAddress + '/' + this.address, this.visibility)
       },
     }
-  }
+  })
 </script>

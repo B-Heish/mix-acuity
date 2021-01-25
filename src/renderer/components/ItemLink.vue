@@ -1,11 +1,13 @@
 <template>
-  <router-link v-if="itemId" :to="route">{{ title }}</router-link>
+  <router-link v-if="route" :to="route">{{ title }}</router-link>
 </template>
 
 <script lang="ts">
+  import Vue from 'vue'
   import MixItem from '../../lib/MixItem'
+  import bs58 from 'bs58'
 
-  export default {
+  export default Vue.extend({
     name: 'item-link',
     props: ['itemId'],
     data() {
@@ -17,10 +19,10 @@
     methods: {
       async loadData() {
         if (this.itemId) {
-          let item = await new MixItem(this.$root, this.itemId).init()
+          let item: MixItem = await new MixItem(this.$root, this.itemId).init()
           let revision = await item.latestRevision().load()
-          this.route = '/item/' + this.itemId
-          this.title = await revision.getTitle()
+          this.title = revision.getTitle()
+          this.route = '/item/' + bs58.encode(Buffer.from(this.$mixClient.web3.utils.hexToBytes(this.itemId.substr(0, 50))))
         }
       },
     },
@@ -28,10 +30,11 @@
       this.loadData()
     },
     watch: {
-      address(val, oldVal) {
+      address(val: string, oldVal: string) {
+        this.route = ''
         this.loadData()
       },
     }
-  }
+  })
 
 </script>

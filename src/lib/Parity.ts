@@ -1,3 +1,5 @@
+import Web3 from 'web3'
+import net from 'net'
 import { app } from 'electron'
 import path from 'path'
 import os from 'os'
@@ -5,22 +7,40 @@ import { spawn } from 'child_process'
 
 declare let __static: string
 
-let parityProcess
+let parityProcess: any
 
-async function launch(window) {
-	let isWindows = os.platform() === 'win32'
-	let parityPath = path.join(__static, isWindows ? 'parity.exe' : 'parity')
+async function launch(window: any) {
+  let isWindows: boolean = os.platform() === 'win32'
+  let ipcPath: string
+  // Check if Parity is already running.
+  if (isWindows) {
+    ipcPath = '\\\\.\\pipe\\mix.ipc'
+  }
+  else {
+    ipcPath = '/mix.ipc'
+  }
+  try {
+    let web3: Web3 = new Web3(new Web3.providers.IpcProvider(ipcPath, net))
+    await web3.eth.getProtocolVersion()
+    console.log('Parity IPC path: ' + ipcPath)
+    window.webContents.on('ipc-message', (e: any, msg: string) => {
+      if (msg == 'get-parity-ipc-path') {
+        window.webContents.send('parity-ipc-path', ipcPath)
+      }
+    })
+    window.webContents.send('parity-ipc-path', ipcPath)
+    return
+  }
+  catch (e) {}
+  // Start Parity.
+	let parityPath: string = path.join(__static, isWindows ? 'parity.exe' : 'parity')
 	console.log('Parity path: ' + parityPath)
-
-	let ipcPath
-
-	if (os.platform() === 'win32') {
+	if (isWindows) {
 		ipcPath = '\\\\.\\pipe\\mix.ipc'
 	}
 	else {
 		ipcPath = path.join(app.getPath('userData'), 'parity.ipc')
 	}
-
 	console.log('Parity IPC path: ' + ipcPath)
 
 	let args = [
@@ -52,42 +72,36 @@ async function launch(window) {
 
 	parityProcess = spawn(parityPath, args)
 
-	parityProcess.on('error', (err) => {
+	parityProcess.on('error', (err: string) => {
 		try {
 			window.webContents.send('parity-error', 'Failed to start (' + err + ')')
 		} catch (e) {}
 	});
 
-	parityProcess.stdout.on('data', (data) => {
+	parityProcess.stdout.on('data', (data: any) => {
 		try {
 			window.webContents.send('parity-stdout', data.toString())
 		} catch (e) {}
 	})
 
-	parityProcess.stderr.on('data', (data) => {
+	parityProcess.stderr.on('data', (data: any) => {
 		try {
 			window.webContents.send('parity-stderr', data.toString())
 		} catch (e) {}
 	})
+
+  window.webContents.on('ipc-message', (e: any, msg: string) => {
+    if (msg == 'get-parity-ipc-path') {
+      window.webContents.send('parity-ipc-path', ipcPath)
+    }
+  })
+  window.webContents.send('parity-ipc-path', ipcPath)
 }
 
 function kill() {
-	return new Promise(async (resolve, reject) => {
-		if (!parityProcess) {
-			resolve()
-			return
-		}
-		parityProcess.on('exit', (code) => {
-			console.log('Parity exited.')
-			resolve(code)
-		})
-		console.log('Exiting Parity.')
-		setTimeout(() => {
-			console.log('Killing Parity.')
-			parityProcess.kill('SIGKILL')
-		}, 10000)
-		parityProcess.kill('SIGQUIT')		// Parity needs SIGQUIT for some reason.
-	})
+  if (parityProcess) {
+    parityProcess.kill()
+  }
 }
 
 export default { launch, kill }

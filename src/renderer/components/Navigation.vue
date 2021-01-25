@@ -1,22 +1,23 @@
 <template>
   <div>
-    <span class="arrow mdi mdi-arrow-left mdi-36px" @click="back"></span>
-    <span class="arrow mdi mdi-arrow-right mdi-36px" @click="forward"></span>
+    <span class="arrow mdi mdi-arrow-left mdi-24px" @click="back"></span>
+    <span class="arrow mdi mdi-arrow-right mdi-24px" @click="forward"></span>
   </div>
 </template>
 
 <script lang="ts">
-  export default {
+  import Vue from 'vue'
+  export default Vue.extend({
     name: 'navigation',
     methods: {
-      back(event) {
+      back(event: any) {
         this.$router.go(-1)
       },
-      forward(event) {
+      forward(event: any) {
         this.$router.go(1)
       }
     },
-  }
+  })
 </script>
 
 <style scoped>

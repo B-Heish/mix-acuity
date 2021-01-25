@@ -5,10 +5,11 @@
 </template>
 
 <script lang="ts">
+  import Vue from 'vue'
 	import MixAccount from '../../lib/MixAccount'
 	import MixItem from '../../lib/MixItem'
 
-  export default {
+  export default Vue.extend({
     name: 'mention-selector',
     props: {
 			value: Array,
@@ -21,10 +22,10 @@
     },
 		async created() {
 			let trustedAccounts = await this.$activeAccount.get().call(this.$mixClient.trustedAccounts, 'getAllTrusted')
-			await trustedAccounts.forEach(async contractAddress => {
-				let account = await new MixAccount(this.$root, contractAddress, true).init()
+			await trustedAccounts.forEach(async (contractAddress: string) => {
+				let account: MixAccount = await new MixAccount(this.$root, contractAddress, true).init()
 				let profileItemId = await account.call(this.$mixClient.accountProfile, 'getProfile')
-				let profileItem = await new MixItem(this.$root, profileItemId).init()
+				let profileItem: MixItem = await new MixItem(this.$root, profileItemId).init()
 				let profileRevision = await profileItem.latestRevision().load()
 				this.trustedAccounts.push({
 					account: account.contractAddress,
@@ -33,13 +34,13 @@
 			})
 		},
 		methods: {
-			getFilteredTrustedAccounts(text) {
-				this.filteredTrustedAccounts = this.trustedAccounts.filter((account) => {
+			getFilteredTrustedAccounts(text: string) {
+				this.filteredTrustedAccounts = this.trustedAccounts.filter((account: any) => {
 					return (this.value.indexOf(account) == -1) && (account.name.toLowerCase().indexOf(text.toLowerCase()) >= 0)
 				})
 			}
 		}
- }
+ })
 
 </script>
 

@@ -3,7 +3,9 @@
 		<div class="tile is-ancestor">
 		  <div class="tile is-parent is-4">
         <article class="tile is-child notification is-info">
-          <div class="token-image is-pulled-right" v-html="image"></div>
+          <div class="token-image is-pulled-right">
+            <ipfs-image :ipfsHash="image" :key="image"></ipfs-image>
+          </div>
           <p class="title">Token</p>
           <p class="subtitle"><item-link :itemId="tokenItemId" :key="tokenItemId"></item-link></p>
 					<b-field label="Your balance">
@@ -65,7 +67,7 @@
               </b-table-column>
 
               <b-table-column :label="$t('TokenView.When')">
-                <timeago v-if="props.row.confirmed" :datetime="props.row.when" :autoUpdate="true"></timeago>
+                <timeago v-if="props.row.confirmed" :datetime="props.row.when" :autoUpdate="true" :locale="$i18n.locale"></timeago>
                 <span v-else>{{ $t('TokenView.Pending') }}</span>
               </b-table-column>
 
@@ -81,11 +83,13 @@
 </template>
 
 <script lang="ts">
+  import Vue from 'vue'
 	import ItemLink from './ItemLink.vue'
 	import ProfileLink from './ProfileLink.vue'
 	import MixItem from '../../lib/MixItem'
+  import IpfsImage from './IpfsImage.vue'
 
-  export default {
+  export default Vue.extend({
     name: 'item-token',
     props: {
 			itemId: String,
@@ -93,6 +97,7 @@
 		components: {
       ItemLink,
 			ProfileLink,
+      IpfsImage,
     },
 		data() {
       return {
@@ -126,12 +131,12 @@
       async start() {
         try {
     			this.tokenItemId = await this.$mixClient.itemDagTokenItems.methods.getParentId(this.itemId).call()
-          let item = await new MixItem(this.$root, this.tokenItemId).init()
+          let item: MixItem = await new MixItem(this.$root, this.tokenItemId).init()
           let revision = await item.latestRevision().load()
           this.image = revision.getImage(64, 64)
-          this.address = await this.$mixClient.tokenItemRegistry.methods.getToken(this.tokenItemId).call()
-    			this.token = new this.$mixClient.web3.eth.Contract(require('../../lib/contracts/MixCreatorToken.abi.json'), this.address)
-    			this.exchangeAddress = await this.$mixClient.uniswapFactory.methods.getExchange(this.address).call()
+          let address = await this.$mixClient.tokenItemRegistry.methods.getToken(this.tokenItemId).call()
+    			this.token = new this.$mixClient.web3.eth.Contract(require('../../lib/contracts/MixCreatorToken.abi.json'), address)
+    			this.exchangeAddress = await this.$mixClient.uniswapFactory.methods.getExchange(address).call()
     			this.exchange = new this.$mixClient.web3.eth.Contract(require('../../lib/contracts/UniswapExchange.abi.json'), this.exchangeAddress)
     			this.loadData()
           this.show = true
@@ -144,7 +149,7 @@
     				fromBlock: 0,
     				toBlock: 'pending',
     			})
-    			.on('data', async log => {
+    			.on('data', async (log: any) => {
     				let block = await this.$mixClient.web3.eth.getBlock(log.blockNumber)
     				this.burnHistory.push({
     					'timestamp': block ? block.timestamp : 4000000000,
@@ -185,7 +190,7 @@
 				}
         this.data = data
 			},
-      async tryMixToTokens(event) {
+      async tryMixToTokens(event: any) {
         try {
           let mix = this.$mixClient.web3.utils.toWei(this.mixToTokensMix)
           this.mixToTokensTokens = this.$mixClient.formatWei(await this.$activeAccount.get().call(this.exchange, 'ethToTokenSwapInput', [1, '4000000000'], mix))
@@ -194,12 +199,12 @@
           this.mixToTokensTokens = ''
         }
       },
-			async mixToTokens(event) {
+			async mixToTokens(event: any) {
 				let mix = this.$mixClient.web3.utils.toWei(this.mixToTokensMix)
 				await this.$activeAccount.get().sendData(this.exchange, 'ethToTokenSwapInput', [1, '4000000000'], mix, 'Swap MIX for tokens')
 				this.loadData()
 			},
-			async burnTokens(event) {
+			async burnTokens(event: any) {
 				let tokens: number = this.$mixClient.web3.utils.toWei(this.tokensToBurn)
 				let result = await this.$activeAccount.get().call(this.$mixClient.tokenBurn, 'getBurnItemPrev', [this.itemId, tokens])
 				await this.$activeAccount.get().sendData(this.token, 'authorize', [this.$mixClient.tokenBurnAddress], 0, 'Authorize token burn contract')
@@ -207,7 +212,7 @@
 				this.loadData()
 			}
 		},
-}
+  })
 </script>
 
 <style scoped>

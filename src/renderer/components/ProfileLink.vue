@@ -1,15 +1,16 @@
 <template>
-  <span v-if="address">
-    <router-link v-if="route" :to="route">{{ title }}</router-link>
-    <span v-else>{{ title }}</span>
+  <span v-if="title">
+    <router-link :to="route">{{ title }}</router-link>
   </span>
 </template>
 
 <script lang="ts">
+  import Vue from 'vue'
   import MixAccount from '../../lib/MixAccount'
   import MixItem from '../../lib/MixItem'
+  import bs58 from 'bs58'
 
-  export default {
+  export default Vue.extend({
     name: 'profile-link',
     props: ['address'],
     data() {
@@ -26,12 +27,12 @@
             let itemId = await account.call(this.$mixClient.accountProfile, 'getProfile')
             let profile = await new MixItem(this.$root, itemId).init()
             let revision = await profile.latestRevision().load()
-            this.route = '/item/' + itemId
-            this.title = await revision.getTitle()
+            this.route = '/item/' + bs58.encode(Buffer.from(this.$mixClient.web3.utils.hexToBytes(itemId.substr(0, 50))))
+            this.title = revision.getTitle()
           }
           catch (e) {
-            this.route = null
-            this.title = this.address
+            this.route = '/profile/edit'
+            this.title = 'Unnamed'
           }
         }
       },
@@ -40,10 +41,11 @@
       this.loadData()
     },
     watch: {
-      address(val, oldVal) {
+      address(val: string, oldVal: string) {
+        this.title = ''
         this.loadData()
       },
     }
-  }
+  })
 
 </script>

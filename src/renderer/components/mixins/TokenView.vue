@@ -36,7 +36,7 @@
 						</b-table-column>
 
 						<b-table-column :label="$t('TokenView.When')">
-							<timeago v-if="props.row.confirmed" :datetime="props.row.when" :autoUpdate="true"></timeago>
+							<timeago v-if="props.row.confirmed" :datetime="props.row.when" :autoUpdate="true" :locale="$i18n.locale"></timeago>
 							<span v-else>{{ $t('TokenView.Pending') }}</span>
 						</b-table-column>
 
@@ -139,9 +139,10 @@
 </template>
 
 <script lang="ts">
+  import Vue from 'vue'
   import ProfileLink from '../ProfileLink.vue'
 
-  export default {
+  export default Vue.extend({
     name: 'token-view',
     props: ['itemId'],
     components: {
@@ -176,23 +177,6 @@
         tokensToMixTokens: '',
       }
     },
-		checkTo(event) {
-			if (this.$mixClient.web3.utils.isAddress(this.to)) {
-				this.toError = ''
-			}
-		},
-		checkAmount(event) {
-			let toBN = this.$mixClient.web3.utils.toBN
-			try {
-				if (toBN(this.$mixClient.web3.utils.toWei(this.amount)).lte(toBN(0))) {
-					throw null
-				}
-			}
-			catch (e) {
-				return
-			}
-			this.amountError = ''
-		},
     async created() {
 			await this.loadData()
 			let token = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/MixCreatorToken.abi.json'), this.address)
@@ -203,7 +187,7 @@
 				fromBlock: 0,
 				toBlock: 'pending',
 			})
-			.on('data', async log => {
+			.on('data', async (log: any) => {
 				let block = await this.$mixClient.web3.eth.getBlock(log.blockNumber)
 				this.data.push({
 					'timestamp': block ? block.timestamp : 4000000000,
@@ -221,7 +205,7 @@
 				fromBlock: 0,
 				toBlock: 'pending',
 			})
-			.on('data', async log => {
+			.on('data', async (log: any) => {
 				let block = await this.$mixClient.web3.eth.getBlock(log.blockNumber)
 				this.data.push({
 					'timestamp': block ? block.timestamp : 4000000000,
@@ -268,12 +252,12 @@
           this.mixPerToken = this.$t('TokenView.NA')
         }
 			},
-			checkTo(event) {
+			checkTo(event: any) {
         if (this.$mixClient.web3.utils.isAddress(this.to)) {
           this.toError = ''
         }
       },
-      checkAmount(event) {
+      checkAmount(event: any) {
         let toBN = this.$mixClient.web3.utils.toBN
         try {
           if (toBN(this.$mixClient.web3.utils.toWei(this.amount)).lte(toBN(0))) {
@@ -285,7 +269,7 @@
         }
         this.amountError = ''
       },
-			async send(event) {
+			async send(event: any) {
 				let toBN = this.$mixClient.web3.utils.toBN
         this.to = this.to.trim()
 
@@ -316,13 +300,13 @@
           this.isConfirm = true
         }
 			},
-			async cancel(event) {
+			async cancel(event: any) {
 	      if (this.isSendAll) {
 	        this.amount = ''
 	      }
 	      this.isConfirm = false
 	    },
-	    async confirm(event) {
+	    async confirm(event: any) {
 				let contract = new this.$mixClient.web3.eth.Contract(require('../../../lib/contracts/MixCreatorToken.abi.json'), this.address)
 				await this.$activeAccount.get().sendData(contract, 'transfer', [this.to, this.$mixClient.web3.utils.toWei(this.amount)], 0, 'Send token')
 	      this.loadData()
@@ -331,30 +315,30 @@
 	      this.isSendAll = false
 	      this.isConfirm = false
 	    },
-      async addLiquidity(event) {
+      async addLiquidity(event: any) {
         await this.$activeAccount.get().sendData(this.token, 'authorize', [this.exchangeAddress], 0, 'Authorize exchange')
         let maxTokens = this.$mixClient.web3.utils.toWei(this.addLiquidityMaxTokens)
         let mix = this.$mixClient.web3.utils.toWei(this.addLiquidityMix)
         await this.$activeAccount.get().sendData(this.exchange, 'addLiquidity', [1, maxTokens, '4000000000'], mix, 'Add liquidity')
         this.loadData()
       },
-      async removeLiquidity(event) {
+      async removeLiquidity(event: any) {
         let uni = this.$mixClient.web3.utils.toWei(this.removeLiquidityUni)
         await this.$activeAccount.get().sendData(this.exchange, 'removeLiquidity', [uni, 1, 1, '4000000000'], 0, 'Remove liquidity')
         this.loadData()
       },
-      async mixToTokens(event) {
+      async mixToTokens(event: any) {
         let mix = this.$mixClient.web3.utils.toWei(this.mixToTokensMix)
         await this.$activeAccount.get().sendData(this.exchange, 'ethToTokenSwapInput', [1, '4000000000'], mix, 'Swap MIX for tokens')
         this.loadData()
       },
-      async tokensToMix(event) {
+      async tokensToMix(event: any) {
         let tokens = this.$mixClient.web3.utils.toWei(this.tokensToMixTokens)
         await this.$activeAccount.get().sendData(this.exchange, 'tokenToEthSwapInput', [tokens, 1, '4000000000'], 0, 'Swap tokens for MIX')
         this.loadData()
       },
 		},
-  }
+  })
 </script>
 
 <style scoped>

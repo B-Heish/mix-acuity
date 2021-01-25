@@ -1,10 +1,8 @@
 import Web3 from 'web3'
 import net from 'net'
-import os from 'os'
-import path from 'path'
-import { remote } from 'electron'
-import Api from '@parity/api'
 import throttle from 'just-throttle'
+import { ipcRenderer } from 'electron'
+let Api: any = require ('@parity/api')
 
 export default class MixClient {
 	web3: any
@@ -32,16 +30,22 @@ export default class MixClient {
 	tokenBurn: any
 	uniswapFactory: any
 
-	async init(vue) {
-		let ipcPath
-
-		if (os.platform() === 'win32') {
-		  ipcPath = '\\\\.\\pipe\\mix.ipc'
-		}
-		else {
-		  ipcPath = path.join(remote.app.getPath('userData'), 'parity.ipc')
-		}
-
+	async init(vue: any) {
+    // Log Parity output.
+    ipcRenderer.on('parity-stdout', (event, msg) => {
+      console.log('Parity: ' + msg)
+    })
+    ipcRenderer.on('parity-stderr', (event, msg) => {
+      console.error('Parity: ' + msg)
+    })
+    // Wait to get Parity IPC Path.
+    let ipcPath: string = await new Promise((resolve, reject) => {
+      ipcRenderer.on('parity-ipc-path', (event, ipcPath: string) => {
+        console.log('Parity IPC path: ' + ipcPath)
+        resolve(ipcPath)
+      })
+      ipcRenderer.send('get-parity-ipc-path')
+    });
 		// Wait for IPC to come up.
 		await new Promise((resolve, reject) => {
 			let intervalId = setInterval(async () => {
@@ -87,7 +91,7 @@ export default class MixClient {
 		this.uniswapFactory = new this.web3.eth.Contract(require('./contracts/UniswapFactory.abi.json'), '0x1381a70fc605b7d7e54b7e1159afba1429a4bbb1')
 
 		// Emit sync info.
-		let startingBlock, currentBlock
+		let startingBlock: number, currentBlock: number
 		let newBlockHeaders = throttle(async () => {
 			let isSyncing = await this.web3.eth.isSyncing()
 
